@@ -1,0 +1,98 @@
+🏦 Iniciando Bolsillo Claro API...
+✅ Configuración cargada correctamente
+✅ Conexión a PostgreSQL establecida correctamente
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /api/health               --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).healthCheck-fm (3 handlers)
+[GIN-debug] GET    /api/hello                --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).helloWorld-fm (3 handlers)
+[GIN-debug] GET    /api/greet/:name          --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).greetUser-fm (3 handlers)
+[GIN-debug] GET    /api/calculate            --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).calculate-fm (3 handlers)
+[GIN-debug] GET    /api/db-test              --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).testDatabase-fm (3 handlers)
+[GIN-debug] POST   /api/auth/register        --> github.com/LorenzoCampos/bolsillo-claro/internal/handlers/auth.(*Handler).Register-fm (3 handlers)
+[GIN-debug] POST   /api/auth/login           --> github.com/LorenzoCampos/bolsillo-claro/internal/handlers/auth.(*Handler).Login-fm (3 handlers)
+[GIN-debug] GET    /api/accounts/:id         --> github.com/LorenzoCampos/bolsillo-claro/internal/handlers/accounts.(*Handler).GetAccount-fm (4 handlers)
+[GIN-debug] PUT    /api/accounts/:id         --> github.com/LorenzoCampos/bolsillo-claro/internal/handlers/accounts.(*Handler).UpdateAccount-fm (4 handlers)
+[GIN-debug] DELETE /api/accounts/:id         --> github.com/LorenzoCampos/bolsillo-claro/internal/handlers/accounts.(*Handler).DeleteAccount-fm (4 handlers)
+[GIN-debug] GET    /api/accounts             --> github.com/LorenzoCampos/bolsillo-claro/internal/handlers/accounts.(*Handler).ListAccounts-fm (4 handlers)
+[GIN-debug] POST   /api/accounts             --> github.com/LorenzoCampos/bolsillo-claro/internal/handlers/accounts.(*Handler).CreateAccount-fm (4 handlers)
+[GIN-debug] POST   /api/expenses             --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.CreateExpense.func3 (5 handlers)
+[GIN-debug] GET    /api/expenses/:id         --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.GetExpense.func4 (5 handlers)
+[GIN-debug] PUT    /api/expenses/:id         --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.UpdateExpense.func5 (5 handlers)
+[GIN-debug] DELETE /api/expenses/:id         --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.DeleteExpense.func6 (5 handlers)
+[GIN-debug] GET    /api/expenses             --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.ListExpenses.func7 (5 handlers)
+[GIN-debug] POST   /api/incomes              --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.CreateIncome.func8 (5 handlers)
+[GIN-debug] GET    /api/incomes/:id          --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.GetIncome.func9 (5 handlers)
+[GIN-debug] PUT    /api/incomes/:id          --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.UpdateIncome.func10 (5 handlers)
+[GIN-debug] DELETE /api/incomes/:id          --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.DeleteIncome.func11 (5 handlers)
+[GIN-debug] GET    /api/incomes              --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.ListIncomes.func12 (5 handlers)
+[GIN-debug] GET    /api/expense-categories   --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.ListExpenseCategories.func13 (5 handlers)
+[GIN-debug] POST   /api/expense-categories   --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.CreateExpenseCategory.func14 (5 handlers)
+[GIN-debug] PUT    /api/expense-categories/:id --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.UpdateExpenseCategory.func15 (5 handlers)
+[GIN-debug] DELETE /api/expense-categories/:id --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.DeleteExpenseCategory.func16 (5 handlers)
+[GIN-debug] GET    /api/income-categories    --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.ListIncomeCategories.func17 (5 handlers)
+[GIN-debug] POST   /api/income-categories    --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.CreateIncomeCategory.func18 (5 handlers)
+[GIN-debug] PUT    /api/income-categories/:id --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.UpdateIncomeCategory.func19 (5 handlers)
+[GIN-debug] DELETE /api/income-categories/:id --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.DeleteIncomeCategory.func20 (5 handlers)
+[GIN-debug] GET    /api/dashboard/summary    --> github.com/LorenzoCampos/bolsillo-claro/internal/server.(*Server).setupRoutes.GetSummary.func21 (5 handlers)
+✅ Servidor HTTP creado
+
+🚀 Servidor iniciado en http://localhost:8080
+📍 Rutas disponibles:
+   - GET  http://localhost:8080/api/health
+   - GET  http://localhost:8080/api/hello
+   - GET  http://localhost:8080/api/greet/:name
+   - GET  http://localhost:8080/api/calculate?a=5&b=3
+   - GET  http://localhost:8080/api/db-test
+
+🔐 Autenticación:
+   - POST http://localhost:8080/api/auth/register
+   - POST http://localhost:8080/api/auth/login
+
+💰 Cuentas (requiere autenticación):
+   - GET    http://localhost:8080/api/accounts (Listar cuentas)
+   - GET    http://localhost:8080/api/accounts/:id (Obtener detalle)
+   - POST   http://localhost:8080/api/accounts (Crear cuenta)
+   - PUT    http://localhost:8080/api/accounts/:id (Actualizar cuenta)
+   - DELETE http://localhost:8080/api/accounts/:id (Eliminar cuenta)
+
+💸 Gastos (requiere autenticación + X-Account-ID):
+   - GET    http://localhost:8080/api/expenses (Listar gastos con filtros)
+   - GET    http://localhost:8080/api/expenses/:id (Obtener detalle de gasto)
+   - POST   http://localhost:8080/api/expenses (Registrar gasto)
+   - PUT    http://localhost:8080/api/expenses/:id (Actualizar gasto)
+   - DELETE http://localhost:8080/api/expenses/:id (Eliminar gasto)
+
+💰 Ingresos (requiere autenticación + X-Account-ID):
+   - GET    http://localhost:8080/api/incomes (Listar ingresos con filtros)
+   - GET    http://localhost:8080/api/incomes/:id (Obtener detalle de ingreso)
+   - POST   http://localhost:8080/api/incomes (Registrar ingreso)
+   - PUT    http://localhost:8080/api/incomes/:id (Actualizar ingreso)
+   - DELETE http://localhost:8080/api/incomes/:id (Eliminar ingreso)
+
+🏷️  Categorías (requiere autenticación + X-Account-ID):
+   - GET    http://localhost:8080/api/expense-categories (Listar categorías de gastos)
+   - POST   http://localhost:8080/api/expense-categories (Crear categoría custom)
+   - PUT    http://localhost:8080/api/expense-categories/:id (Actualizar)
+   - DELETE http://localhost:8080/api/expense-categories/:id (Eliminar)
+   - GET    http://localhost:8080/api/income-categories (Listar categorías de ingresos)
+   - POST   http://localhost:8080/api/income-categories (Crear categoría custom)
+   - PUT    http://localhost:8080/api/income-categories/:id (Actualizar)
+   - DELETE http://localhost:8080/api/income-categories/:id (Eliminar)
+
+📊 Dashboard (requiere autenticación + X-Account-ID):
+   - GET    http://localhost:8080/api/dashboard/summary?month=YYYY-MM (Resumen financiero del mes)
+
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8080
+[GIN] 2026/01/14 - 02:28:34 | 200 |  492.349807ms |       127.0.0.1 | POST     "/api/auth/login"
+[GIN] 2026/01/14 - 02:28:46 | 200 |   61.955096ms |       127.0.0.1 | GET      "/api/dashboard/summary?month=2026-01"
+[GIN] 2026/01/14 - 02:29:11 | 201 |   29.432429ms |       127.0.0.1 | POST     "/api/incomes"
+[GIN] 2026/01/14 - 02:29:20 | 200 |   10.023329ms |       127.0.0.1 | GET      "/api/dashboard/summary"
+
+🛑 Señal de shutdown recibida, cerrando servidor...
+🔌 Pool de conexiones PostgreSQL cerrado
