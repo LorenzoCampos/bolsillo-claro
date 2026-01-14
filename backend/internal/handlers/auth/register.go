@@ -67,6 +67,7 @@ func (h *Handler) Register(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error verificando email",
+			"details": err.Error(),
 		})
 		return
 	}

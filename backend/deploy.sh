@@ -35,6 +35,7 @@ echo -e "${YELLOW}🚀 Starting new container...${NC}"
 docker run -d \
   --name bolsillo-claro-backend \
   --restart unless-stopped \
+  --add-host=host.docker.internal:host-gateway \
   --env-file .env.production \
   -p 8080:8080 \
   bolsillo-claro-backend:latest
