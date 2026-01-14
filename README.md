@@ -75,7 +75,7 @@ Si no tenés PostgreSQL instalado, podés descargarlo desde postgresql.org o usa
 El proyecto tiene dos partes principales que necesitás configurar: el backend en Go y el frontend en React. Primero cloná el repositorio en tu máquina local y entrá al directorio del proyecto.
 
 ```bash
-git clone https://github.com/tu-usuario/bolsillo-claro.git
+git clone https://github.com/LorenzoCampos/bolsillo-claro.git
 cd bolsillo-claro
 ```
 
