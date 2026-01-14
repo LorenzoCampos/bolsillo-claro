@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+server.log
+server_new.log
+server_test.log
+
+# Environment files (se configuran por separado)
+.env
+.env.local
+.env.production
+
+# Binarios
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentación local
+README.md
