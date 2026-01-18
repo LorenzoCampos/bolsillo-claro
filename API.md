@@ -49,6 +49,12 @@ PUT    /savings-goals/:id
 DELETE /savings-goals/:id
 POST   /savings-goals/:id/add-funds
 POST   /savings-goals/:id/withdraw-funds
+
+GET    /recurring-expenses
+POST   /recurring-expenses
+GET    /recurring-expenses/:id
+PUT    /recurring-expenses/:id
+DELETE /recurring-expenses/:id
 ```
 
 ### Headers
@@ -489,6 +495,248 @@ Eliminar gasto.
   "message": "Gasto eliminado exitosamente"
 }
 ```
+
+---
+
+## 🔁 Recurring Expenses (Templates)
+
+**Patrón "Recurring Templates":** Los gastos recurrentes se gestionan mediante **templates** que generan automáticamente gastos reales en la tabla `expenses` vía CRON job diario (ejecuta a las 00:01 UTC).
+
+**Ventajas:**
+- Las estadísticas consultan solo `expenses` (gastos reales), sin cálculos complejos
+- Editar el template preserva histórico automáticamente
+- Trazabilidad perfecta (FK `recurring_expense_id` en expenses)
+
+---
+
+### POST /recurring-expenses
+
+Crear template de gasto recurrente.
+
+**Headers:** `Authorization`, `X-Account-ID`
+
+**Request (Monthly - Netflix):**
+```json
+{
+  "description": "Netflix Subscription",
+  "amount": 5000,
+  "currency": "ARS",
+  "recurrence_frequency": "monthly",
+  "recurrence_day_of_month": 15,
+  "start_date": "2026-01-01",
+  "category_id": "uuid (opcional)"
+}
+```
+
+**Request (Daily - Café):**
+```json
+{
+  "description": "Café diario",
+  "amount": 500,
+  "currency": "ARS",
+  "recurrence_frequency": "daily",
+  "recurrence_interval": 1,
+  "start_date": "2026-01-01"
+}
+```
+
+**Request (Weekly - Gimnasio):**
+```json
+{
+  "description": "Clase de yoga",
+  "amount": 2000,
+  "currency": "ARS",
+  "recurrence_frequency": "weekly",
+  "recurrence_day_of_week": 1,
+  "start_date": "2026-01-06"
+}
+```
+**Nota:** `recurrence_day_of_week`: 0=Domingo, 1=Lunes, ..., 6=Sábado
+
+**Request (6 cuotas mensuales):**
+```json
+{
+  "description": "Notebook en 6 cuotas",
+  "amount": 50000,
+  "currency": "ARS",
+  "recurrence_frequency": "monthly",
+  "recurrence_day_of_month": 10,
+  "start_date": "2026-01-10",
+  "total_occurrences": 6
+}
+```
+
+**Response (201):**
+```json
+{
+  "message": "Gasto recurrente creado exitosamente",
+  "recurring_expense": {
+    "id": "uuid",
+    "account_id": "uuid",
+    "description": "Netflix Subscription",
+    "amount": 5000,
+    "currency": "ARS",
+    "recurrence_frequency": "monthly",
+    "recurrence_interval": 1,
+    "recurrence_day_of_month": 15,
+    "start_date": "2026-01-01",
+    "current_occurrence": 0,
+    "is_active": true,
+    "created_at": "2026-01-18T10:00:00Z"
+  }
+}
+```
+
+**Validations:**
+- `recurrence_frequency`: `'daily'`, `'weekly'`, `'monthly'`, `'yearly'` (obligatorio)
+- Monthly/yearly REQUIERE `recurrence_day_of_month` (1-31)
+- Weekly REQUIERE `recurrence_day_of_week` (0-6)
+- `recurrence_interval`: cada N períodos (default: 1)
+- `amount` > 0
+- `start_date`: formato YYYY-MM-DD
+- `end_date`: opcional, debe ser >= start_date
+- `total_occurrences`: opcional, límite de repeticiones
+
+**Edge Cases:**
+- Día 31 en meses cortos → se genera el último día del mes (ej: 28/29 feb)
+- Feb 29 en años no bisiestos → se genera el 28 de febrero
+
+---
+
+### GET /recurring-expenses
+
+Listar templates de gastos recurrentes.
+
+**Headers:** `Authorization`, `X-Account-ID`
+
+**Query Params:**
+- `is_active` (opcional): `'true'`, `'false'`, `'all'` (default: `'true'`)
+- `frequency` (opcional): `'daily'`, `'weekly'`, `'monthly'`, `'yearly'`
+- `page` (opcional): número de página (default: 1)
+- `limit` (opcional): items por página (default: 20, max: 100)
+
+**Response (200):**
+```json
+{
+  "recurring_expenses": [
+    {
+      "id": "uuid",
+      "description": "Netflix Subscription",
+      "amount": 5000,
+      "currency": "ARS",
+      "category_name": "Entretenimiento",
+      "recurrence_frequency": "monthly",
+      "recurrence_interval": 1,
+      "recurrence_day_of_month": 15,
+      "start_date": "2026-01-01",
+      "current_occurrence": 3,
+      "is_active": true,
+      "created_at": "2026-01-01T10:00:00Z"
+    }
+  ],
+  "count": 1,
+  "total": 10,
+  "page": 1,
+  "limit": 20
+}
+```
+
+---
+
+### GET /recurring-expenses/:id
+
+Obtener detalle de un template.
+
+**Headers:** `Authorization`, `X-Account-ID`
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "account_id": "uuid",
+  "description": "Netflix Subscription",
+  "amount": 5000,
+  "currency": "ARS",
+  "category_id": "uuid",
+  "category_name": "Entretenimiento",
+  "recurrence_frequency": "monthly",
+  "recurrence_interval": 1,
+  "recurrence_day_of_month": 15,
+  "start_date": "2026-01-01",
+  "end_date": null,
+  "total_occurrences": null,
+  "current_occurrence": 3,
+  "exchange_rate": 1.0,
+  "amount_in_primary_currency": 5000,
+  "is_active": true,
+  "created_at": "2026-01-01T10:00:00Z",
+  "updated_at": "2026-01-18T10:00:00Z",
+  "generated_expenses_count": 3
+}
+```
+
+**Nota:** `generated_expenses_count` muestra cuántos gastos se generaron desde este template.
+
+---
+
+### PUT /recurring-expenses/:id
+
+Actualizar template (solo afecta FUTUROS gastos, preserva histórico).
+
+**Headers:** `Authorization`, `X-Account-ID`
+
+**Request (aumento de precio):**
+```json
+{
+  "amount": 6000,
+  "description": "Netflix Subscription (price increased)"
+}
+```
+
+**Request (cancelar desde hoy):**
+```json
+{
+  "end_date": "2026-01-18",
+  "is_active": false
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Gasto recurrente actualizado exitosamente",
+  "updated_at": "2026-01-18T10:00:00Z",
+  "note": "Los gastos ya generados NO se modifican. Solo afecta futuros gastos."
+}
+```
+
+**Validaciones:**
+- Partial update (solo campos enviados se actualizan)
+- Frequency-specific fields validados (ej: no puedes setear day_of_month si no es monthly/yearly)
+- Set a NULL: enviar campo vacío (ej: `"end_date": ""` → SET NULL)
+
+---
+
+### DELETE /recurring-expenses/:id
+
+Desactivar template (soft delete - detiene generación futura).
+
+**Headers:** `Authorization`, `X-Account-ID`
+
+**Response (200):**
+```json
+{
+  "message": "Gasto recurrente eliminado exitosamente",
+  "generated_expenses": 3,
+  "note": "Los gastos ya generados NO se eliminan. Solo se detiene la generación futura."
+}
+```
+
+**Comportamiento:**
+- SOFT DELETE: marca `is_active = false`
+- NO borra el template de la DB
+- NO borra los gastos ya generados
+- Detiene la generación de nuevos gastos
 
 ---
 
@@ -973,6 +1221,6 @@ try {
 ---
 
 **Creado:** 2026-01-15  
-**Última actualización:** 2026-01-16  
+**Última actualización:** 2026-01-18 (Recurring Expenses Templates added)
 **Versión:** 2.0 (Consolidada)  
 **Mantenido por:** Gentleman Programming & Lorenzo
