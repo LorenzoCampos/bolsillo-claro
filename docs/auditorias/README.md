@@ -30,7 +30,7 @@ Se recomienda crear nuevas auditorías:
 **Estado general:** 7 módulos auditados | **Score promedio:** 8.5/10 | **Status:** 1 blocker crítico
 
 - [AUTH](./2026-01-17_AUTH.md) - Autenticación (9.5/10) ✅ ⭐ **MEJORADO 2026-01-18**
-- [ACCOUNTS](./2026-01-17_ACCOUNTS.md) - Gestión de cuentas (8.0/10) ✅
+- [ACCOUNTS](./2026-01-17_ACCOUNTS.md) - Gestión de cuentas (8.5/10) ✅ ⭐ **MEJORADO 2026-01-18**
 - [EXPENSES](./2026-01-17_EXPENSES.md) - Gastos y recurrencia (9.0/10) ✅
 - [INCOMES](./2026-01-17_INCOMES.md) - Ingresos (9.0/10) ✅
 - [SAVINGS_GOALS](./2026-01-17_SAVINGS_GOALS.md) - Metas de ahorro (8.5/10) ✅ ⭐ **FIXED 2026-01-18**

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // DeleteAccount maneja DELETE /api/accounts/:id
@@ -80,9 +81,9 @@ func (h *Handler) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	// Check savings_goals
+	// Check savings_goals (ignorar la meta general que se crea automáticamente)
 	err = h.db.Pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM savings_goals WHERE account_id = $1 LIMIT 1)`,
+		`SELECT EXISTS(SELECT 1 FROM savings_goals WHERE account_id = $1 AND is_general = false LIMIT 1)`,
 		accountID,
 	).Scan(&hasGoals)
 	if err != nil {
@@ -181,6 +182,13 @@ func (h *Handler) DeleteAccount(c *gin.Context) {
 		})
 		return
 	}
+
+	// Log de cuenta eliminada
+	logger.Info("account.deleted", "Cuenta eliminada", map[string]interface{}{
+		"account_id": accountID,
+		"user_id":    userID,
+		"ip":         c.ClientIP(),
+	})
 
 	// Retornar éxito
 	c.JSON(http.StatusOK, gin.H{

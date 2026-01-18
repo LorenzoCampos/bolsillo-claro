@@ -159,8 +159,7 @@ Crear cuenta (personal o familiar).
 {
   "name": "Finanzas Personales",
   "type": "personal",
-  "currency": "ARS",
-  "initial_balance": 0
+  "currency": "ARS"
 }
 ```
 
@@ -282,14 +281,25 @@ Actualizar cuenta.
 
 ### DELETE /accounts/:id
 
-Eliminar cuenta (cascade: gastos, ingresos, metas, miembros).
+Eliminar cuenta.
 
 **Headers:** `Authorization`
+
+**Validaciones:**
+- Solo se puede eliminar si NO tiene gastos, ingresos o metas de ahorro asociadas
+- Si tiene datos, retorna 409 Conflict
 
 **Response (200):**
 ```json
 {
   "message": "Cuenta eliminada exitosamente"
+}
+```
+
+**Response (409):**
+```json
+{
+  "error": "No se puede eliminar la cuenta porque tiene gastos, ingresos o metas asociadas"
 }
 ```
 

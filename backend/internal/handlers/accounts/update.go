@@ -6,12 +6,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // UpdateAccountRequest representa la estructura de datos para actualizar una cuenta
 type UpdateAccountRequest struct {
 	Name     *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
-	Currency *string `json:"currency,omitempty" binding:"omitempty,oneof=ARS USD EUR"`
+	Currency *string `json:"currency,omitempty" binding:"omitempty,oneof=ARS USD"`
+	// NOTA: Solo ARS y USD están soportados en el ENUM de la base de datos
+	// Si necesitamos EUR, requiere migración para agregarlo al ENUM currency_type
 }
 
 // UpdateAccount maneja PUT /api/accounts/:id
@@ -161,6 +164,20 @@ func (h *Handler) UpdateAccount(c *gin.Context) {
 		})
 		return
 	}
+
+	// Log de cuenta actualizada
+	logData := map[string]interface{}{
+		"account_id": accountID,
+		"user_id":    userID,
+		"ip":         c.ClientIP(),
+	}
+	if req.Name != nil {
+		logData["new_name"] = *req.Name
+	}
+	if req.Currency != nil {
+		logData["new_currency"] = *req.Currency
+	}
+	logger.Info("account.updated", "Cuenta actualizada", logData)
 
 	// Retornar la cuenta actualizada
 	c.JSON(http.StatusOK, gin.H{

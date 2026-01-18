@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/database"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // CreateAccountRequest representa el JSON para crear una cuenta
@@ -223,6 +224,15 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 		})
 		return
 	}
+
+	// Log de cuenta creada exitosamente
+	logger.Info("account.created", "Nueva cuenta creada", map[string]interface{}{
+		"account_id": accountID.String(),
+		"user_id":    userID,
+		"type":       req.Type,
+		"currency":   req.Currency,
+		"ip":         c.ClientIP(),
+	})
 
 	// Retornar la cuenta creada
 	response := AccountResponse{
