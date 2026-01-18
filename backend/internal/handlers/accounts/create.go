@@ -179,27 +179,32 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 	}
 
 	// Crear la meta de Ahorro General automáticamente
+	// NOTA: La columna is_general fue eliminada en migration 011
+	// Esta meta se identifica por nombre y características especiales:
+	// - Nombre: "Ahorro General"
+	// - Target muy alto (sin límite práctico)
+	// - Sin deadline
 	savingsGoalID := uuid.New()
 	insertSavingsGoalQuery := `
 		INSERT INTO savings_goals (
 			id, account_id, name, target_amount, current_amount, 
-			currency, deadline, is_general, created_at, updated_at
+			currency, deadline, is_active, created_at, updated_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 	`
 
-	// Meta general: target muy alto, sin deadline, is_general = true
+	// Meta general: target muy alto, sin deadline, activa por defecto
 	_, err = tx.Exec(
 		ctx,
 		insertSavingsGoalQuery,
 		savingsGoalID,
 		accountID,
 		"Ahorro General",
-		9999999999.99, // Target amount muy alto
+		9999999999.99, // Target amount muy alto (sin límite práctico)
 		0,             // Current amount empieza en 0
 		req.Currency,  // Misma moneda que la cuenta
 		nil,           // Sin deadline
-		true,          // is_general = true
+		true,          // is_active = true
 	)
 
 	if err != nil {
