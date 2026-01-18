@@ -16,6 +16,9 @@ RUN go mod download
 # Copiar código fuente
 COPY . .
 
+# Descargar dependencias adicionales (si go.mod cambió)
+RUN go mod download && go mod tidy
+
 # Compilar binario optimizado
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o /app/bin/server ./cmd/server/main.go
 

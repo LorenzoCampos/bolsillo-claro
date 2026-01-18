@@ -7,9 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/robfig/cron/v3"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/config"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/database"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/server"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/scheduler"
 )
 
 // main es la función especial que Go ejecuta al iniciar el programa
@@ -37,6 +39,32 @@ func main() {
 	srv := server.New(cfg, db)
 	fmt.Println("✅ Servidor HTTP creado")
 
+	// Paso 3.5: Iniciar CRON scheduler para gastos recurrentes
+	c := cron.New()
+	
+	// Ejecutar generación diaria a las 00:01 (1 minuto después de medianoche)
+	// Formato: "1 0 * * *" = minuto 1, hora 0, todos los días
+	c.AddFunc("1 0 * * *", func() {
+		fmt.Println("🔁 Ejecutando generación diaria de gastos recurrentes...")
+		err := scheduler.GenerateDailyRecurringExpenses(db.Pool)
+		if err != nil {
+			log.Printf("❌ Error en generación de gastos recurrentes: %v", err)
+		}
+	})
+	
+	// Iniciar CRON
+	c.Start()
+	fmt.Println("✅ CRON scheduler iniciado (ejecuta diariamente a las 00:01 UTC)")
+	
+	// Ejecutar una vez al arrancar el servidor (catchup de hoy si es necesario)
+	go func() {
+		fmt.Println("🔁 Ejecutando generación inicial (catchup)...")
+		err := scheduler.GenerateDailyRecurringExpenses(db.Pool)
+		if err != nil {
+			log.Printf("❌ Error en generación inicial: %v", err)
+		}
+	}()
+
 	// Paso 4: Setup de graceful shutdown
 	// Esto permite que el servidor se apague limpiamente cuando recibe SIGINT (Ctrl+C) o SIGTERM
 	quit := make(chan os.Signal, 1)
@@ -53,4 +81,8 @@ func main() {
 	// Esperar señal de shutdown
 	<-quit
 	fmt.Println("\n🛑 Señal de shutdown recibida, cerrando servidor...")
+	
+	// Detener CRON scheduler
+	c.Stop()
+	fmt.Println("✅ CRON scheduler detenido")
 }
