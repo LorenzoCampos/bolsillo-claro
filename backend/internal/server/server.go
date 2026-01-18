@@ -95,6 +95,12 @@ func (s *Server) setupRoutes() {
 			accountsRoutes.DELETE("/:id", accountsH.DeleteAccount) // Eliminar cuenta
 			accountsRoutes.GET("", accountsH.ListAccounts)         // Listar cuentas del usuario
 			accountsRoutes.POST("", accountsH.CreateAccount)       // Crear nueva cuenta
+
+			// Rutas de gestión de miembros (family accounts)
+			accountsRoutes.POST("/:id/members", accountsH.AddMember)                            // Agregar miembro
+			accountsRoutes.PUT("/:id/members/:member_id", accountsH.UpdateMember)               // Actualizar miembro
+			accountsRoutes.PATCH("/:id/members/:member_id/deactivate", accountsH.DeactivateMember) // Desactivar miembro (soft delete)
+			accountsRoutes.PATCH("/:id/members/:member_id/reactivate", accountsH.ReactivateMember) // Reactivar miembro
 		}
 
 		// Rutas de gastos (protegidas - requieren auth + account)

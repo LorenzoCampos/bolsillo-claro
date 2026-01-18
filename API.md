@@ -348,6 +348,140 @@ Eliminar cuenta.
 
 ---
 
+### POST /accounts/:id/members
+
+Agregar un nuevo miembro a una cuenta familiar.
+
+**Headers:** `Authorization`
+
+**Request:**
+```json
+{
+  "name": "Pedro Pérez",
+  "email": "pedro@example.com"
+}
+```
+
+**Validaciones:**
+- Solo funciona en cuentas de tipo `family`
+- El nombre no puede estar vacío
+- No puede existir otro miembro activo con el mismo nombre en la misma cuenta
+
+**Response (201):**
+```json
+{
+  "message": "Miembro agregado exitosamente",
+  "member": {
+    "id": "uuid",
+    "name": "Pedro Pérez",
+    "email": "pedro@example.com",
+    "isActive": true
+  }
+}
+```
+
+**Errors:**
+- `400` - Cuenta no es de tipo family o datos inválidos
+- `404` - Cuenta no encontrada
+- `409` - Ya existe un miembro activo con ese nombre
+
+---
+
+### PUT /accounts/:id/members/:member_id
+
+Actualizar nombre y/o email de un miembro existente.
+
+**Headers:** `Authorization`
+
+**Request:**
+```json
+{
+  "name": "Pedro García",
+  "email": "pedro.garcia@example.com"
+}
+```
+
+**Nota:** Al menos uno de los campos (`name` o `email`) debe estar presente.
+
+**Validaciones:**
+- El miembro debe pertenecer a la cuenta especificada
+- El nombre no puede estar vacío
+- Si se cambia el nombre, no puede coincidir con otro miembro activo
+
+**Response (200):**
+```json
+{
+  "message": "Miembro actualizado exitosamente",
+  "member": {
+    "id": "uuid",
+    "name": "Pedro García",
+    "email": "pedro.garcia@example.com",
+    "isActive": true
+  }
+}
+```
+
+**Errors:**
+- `400` - Datos inválidos o ningún campo presente
+- `404` - Cuenta o miembro no encontrado
+- `409` - Ya existe otro miembro activo con ese nombre
+
+---
+
+### PATCH /accounts/:id/members/:member_id/deactivate
+
+Desactivar un miembro (soft delete). El miembro deja de aparecer en listados pero se preserva en la base de datos.
+
+**Headers:** `Authorization`
+
+**Response (200):**
+```json
+{
+  "message": "Miembro desactivado exitosamente",
+  "member": {
+    "id": "uuid",
+    "name": "Pedro García",
+    "email": "pedro.garcia@example.com",
+    "isActive": false
+  }
+}
+```
+
+**Errors:**
+- `400` - El miembro ya está inactivo
+- `404` - Cuenta o miembro no encontrado
+
+---
+
+### PATCH /accounts/:id/members/:member_id/reactivate
+
+Reactivar un miembro previamente desactivado.
+
+**Headers:** `Authorization`
+
+**Validaciones:**
+- No puede existir otro miembro activo con el mismo nombre (debe desactivarlo primero o cambiar el nombre del miembro a reactivar)
+
+**Response (200):**
+```json
+{
+  "message": "Miembro reactivado exitosamente",
+  "member": {
+    "id": "uuid",
+    "name": "Pedro García",
+    "email": "pedro.garcia@example.com",
+    "isActive": true
+  }
+}
+```
+
+**Errors:**
+- `400` - El miembro ya está activo
+- `404` - Cuenta o miembro no encontrado
+- `409` - Ya existe otro miembro activo con ese nombre
+
+---
+
 ## 💸 Expenses
 
 ### POST /expenses
