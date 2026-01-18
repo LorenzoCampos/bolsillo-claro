@@ -82,6 +82,7 @@ func (s *Server) setupRoutes() {
 		{
 			authRoutes.POST("/register", authH.Register)
 			authRoutes.POST("/login", authH.Login)
+			authRoutes.POST("/refresh", authH.Refresh) // Renovar tokens con refresh token
 		}
 
 		// Rutas de cuentas (protegidas - requieren auth)
@@ -272,6 +273,7 @@ func (s *Server) Start() error {
 	fmt.Printf("\n🔐 Autenticación:\n")
 	fmt.Printf("   - POST http://localhost%s/api/auth/register\n", addr)
 	fmt.Printf("   - POST http://localhost%s/api/auth/login\n", addr)
+	fmt.Printf("   - POST http://localhost%s/api/auth/refresh (Renovar tokens)\n", addr)
 	fmt.Printf("\n💰 Cuentas (requiere autenticación):\n")
 	fmt.Printf("   - GET    http://localhost%s/api/accounts (Listar cuentas)\n", addr)
 	fmt.Printf("   - GET    http://localhost%s/api/accounts/:id (Obtener detalle)\n", addr)

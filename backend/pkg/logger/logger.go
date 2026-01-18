@@ -124,3 +124,20 @@ func LogInvalidToken(ip, reason string) {
 		"reason": reason,
 	})
 }
+
+// LogRefreshSuccess registra un refresh token exitoso
+func LogRefreshSuccess(userID, email, ip string) {
+	Security("auth.refresh.success", "Tokens renovados exitosamente", map[string]interface{}{
+		"user_id": userID,
+		"email":   email,
+		"ip":      ip,
+	})
+}
+
+// LogRefreshFailed registra un intento fallido de refresh
+func LogRefreshFailed(ip, reason string) {
+	Security("auth.refresh.failed", "Intento de refresh fallido", map[string]interface{}{
+		"ip":     ip,
+		"reason": reason,
+	})
+}

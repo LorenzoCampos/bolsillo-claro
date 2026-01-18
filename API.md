@@ -14,6 +14,7 @@
 # Without auth
 POST   /auth/register
 POST   /auth/login
+POST   /auth/refresh
 
 # With JWT only
 GET    /accounts
@@ -143,6 +144,42 @@ Iniciar sesión.
 **Tokens:**
 - Access: 15min
 - Refresh: 7 días
+
+---
+
+### POST /auth/refresh
+
+Renovar tokens usando el refresh token (evita re-login).
+
+**Request:**
+```json
+{
+  "refresh_token": "jwt_refresh_token_string"
+}
+```
+
+**Response (200):**
+```json
+{
+  "access_token": "new_jwt_access_token",
+  "refresh_token": "new_jwt_refresh_token"
+}
+```
+
+**Notas:**
+- El refresh token viejo queda invalidado (rotación automática)
+- Siempre devuelve un PAR nuevo de tokens (access + refresh)
+- Verifica que el usuario siga existiendo en la DB antes de renovar
+
+**Errors:**
+- `400` - Datos inválidos (refresh_token requerido)
+- `401` - Refresh token inválido, expirado o usuario no encontrado
+- `429` - Demasiados intentos (rate limit: 5 requests cada 15 minutos)
+
+**Best Practices:**
+- Guardar el nuevo refresh_token y descartar el anterior
+- Llamar a este endpoint cuando el access_token expira (HTTP 401)
+- Implementar retry automático en el frontend para renovar tokens
 
 ---
 
