@@ -13,6 +13,7 @@ import (
 	dashboardHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/dashboard"
 	expensesHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/expenses"
 	incomesHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/incomes"
+	recurringExpensesHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/recurring_expenses"
 	savingsGoalsHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/savings_goals"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
 )
@@ -163,6 +164,18 @@ func (s *Server) setupRoutes() {
 			savingsGoalsRoutes.POST("/:id/add-funds", savingsGoalsHandler.AddFunds(s.db.Pool))
 			savingsGoalsRoutes.POST("/:id/withdraw-funds", savingsGoalsHandler.WithdrawFunds(s.db.Pool))
 		}
+
+		// Rutas de recurring expenses (protegidas - requieren auth + account)
+		recurringExpensesRoutes := api.Group("/recurring-expenses")
+		recurringExpensesRoutes.Use(authMiddleware)
+		recurringExpensesRoutes.Use(accountMiddleware)
+		{
+			recurringExpensesRoutes.POST("", recurringExpensesHandler.CreateRecurringExpense(s.db.Pool))
+			recurringExpensesRoutes.GET("", recurringExpensesHandler.ListRecurringExpenses(s.db.Pool))
+			recurringExpensesRoutes.GET("/:id", recurringExpensesHandler.GetRecurringExpense(s.db.Pool))
+			recurringExpensesRoutes.PUT("/:id", recurringExpensesHandler.UpdateRecurringExpense(s.db.Pool))
+			recurringExpensesRoutes.DELETE("/:id", recurringExpensesHandler.DeleteRecurringExpense(s.db.Pool))
+		}
 	}
 }
 
@@ -311,6 +324,12 @@ func (s *Server) Start() error {
 	fmt.Printf("   - DELETE http://localhost%s/api/savings-goals/:id (Eliminar meta)\n", addr)
 	fmt.Printf("   - POST   http://localhost%s/api/savings-goals/:id/add-funds (Agregar fondos)\n", addr)
 	fmt.Printf("   - POST   http://localhost%s/api/savings-goals/:id/withdraw-funds (Retirar fondos)\n", addr)
+	fmt.Printf("\n🔁 Gastos Recurrentes (requiere autenticación + X-Account-ID):\n")
+	fmt.Printf("   - GET    http://localhost%s/api/recurring-expenses (Listar templates)\n", addr)
+	fmt.Printf("   - GET    http://localhost%s/api/recurring-expenses/:id (Detalle de template)\n", addr)
+	fmt.Printf("   - POST   http://localhost%s/api/recurring-expenses (Crear template)\n", addr)
+	fmt.Printf("   - PUT    http://localhost%s/api/recurring-expenses/:id (Actualizar template)\n", addr)
+	fmt.Printf("   - DELETE http://localhost%s/api/recurring-expenses/:id (Desactivar template)\n", addr)
 	fmt.Println()
 
 	// Iniciar el servidor
