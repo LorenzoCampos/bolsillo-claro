@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/LorenzoCampos/bolsillo-claro/pkg/auth"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // LoginRequest representa el JSON que el cliente envía para hacer login
@@ -55,6 +56,7 @@ func (h *Handler) Login(c *gin.Context) {
 
 	if err != nil {
 		// No revelar si el email existe o no (seguridad)
+		logger.LogLoginFailed(req.Email, c.ClientIP(), "user_not_found")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "Credenciales inválidas",
 		})
@@ -64,6 +66,7 @@ func (h *Handler) Login(c *gin.Context) {
 	// Verificar la contraseña
 	err = auth.CheckPassword(req.Password, passwordHash)
 	if err != nil {
+		logger.LogLoginFailed(req.Email, c.ClientIP(), "invalid_password")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "Credenciales inválidas",
 		})
@@ -113,6 +116,9 @@ func (h *Handler) Login(c *gin.Context) {
 	// 	false,                     // secure (true en producción con HTTPS)
 	// 	true,                      // httpOnly
 	// )
+
+	// Log de login exitoso
+	logger.LogLoginSuccess(userID, req.Email, c.ClientIP())
 
 	// Retornar tokens y datos del usuario
 	c.JSON(http.StatusOK, LoginResponse{

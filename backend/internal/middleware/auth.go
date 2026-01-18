@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/LorenzoCampos/bolsillo-claro/pkg/auth"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // AuthMiddleware es un middleware que valida JWT tokens
@@ -38,6 +39,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		// Validar el token
 		claims, err := auth.ValidateToken(tokenString, jwtSecret)
 		if err != nil {
+			logger.LogInvalidToken(c.ClientIP(), err.Error())
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Token inválido o expirado",
 			})

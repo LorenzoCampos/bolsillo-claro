@@ -76,7 +76,9 @@ func (s *Server) setupRoutes() {
 		api.GET("/db-test", s.testDatabase)
 
 		// Rutas de autenticación (públicas - no requieren auth)
+		// Aplicamos rate limiting agresivo para prevenir brute-force attacks
 		authRoutes := api.Group("/auth")
+		authRoutes.Use(middleware.RateLimitAuth()) // 5 intentos cada 15 minutos
 		{
 			authRoutes.POST("/register", authH.Register)
 			authRoutes.POST("/login", authH.Login)

@@ -3,12 +3,14 @@ package auth
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/config"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/database"
 	"github.com/LorenzoCampos/bolsillo-claro/pkg/auth"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // RegisterRequest representa el JSON que el cliente envía para registrarse
@@ -73,6 +75,7 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	if exists {
+		logger.LogRegisterFailed(req.Email, c.ClientIP(), "email_already_exists")
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "El email ya está registrado",
 		})
@@ -116,14 +119,48 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	// Retornar el usuario creado (sin el password hash!)
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Usuario creado exitosamente",
-		"user": RegisterResponse{
-			ID:        userID.String(),
-			Email:     req.Email,
-			Name:      req.Name,
-			CreatedAt: createdAt,
+	// Generar tokens JWT para auto-login después del registro
+	accessTokenExpiry, err := time.ParseDuration(h.config.JWTAccessExpiry)
+	if err != nil {
+		accessTokenExpiry = 15 * time.Minute // Fallback
+	}
+
+	refreshTokenExpiry, err := time.ParseDuration(h.config.JWTRefreshExpiry)
+	if err != nil {
+		refreshTokenExpiry = 7 * 24 * time.Hour // Fallback
+	}
+
+	jwtSecret := h.config.JWTSecret
+
+	// Generar access token
+	accessToken, err := auth.GenerateAccessToken(userID.String(), req.Email, jwtSecret, accessTokenExpiry)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error generando token",
+		})
+		return
+	}
+
+	// Generar refresh token
+	refreshToken, err := auth.GenerateRefreshToken(userID.String(), jwtSecret, refreshTokenExpiry)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error generando refresh token",
+		})
+		return
+	}
+
+	// Log de registro exitoso
+	logger.LogRegisterSuccess(userID.String(), req.Email, c.ClientIP())
+
+	// Retornar el usuario creado CON tokens (auto-login)
+	c.JSON(http.StatusCreated, LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User: UserInfo{
+			ID:    userID.String(),
+			Email: req.Email,
+			Name:  req.Name,
 		},
 	})
 }
