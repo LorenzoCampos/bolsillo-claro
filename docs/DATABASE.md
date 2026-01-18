@@ -19,8 +19,8 @@ Schema completo de PostgreSQL 15 con todas las tablas, relaciones, constraints y
 
 **Motor:** PostgreSQL 15  
 **Extensiones:** uuid-ossp (generación de UUIDs)  
-**Total de tablas:** 11  
-**Migraciones:** 11 archivos SQL ejecutables secuencialmente
+**Total de tablas:** 12  
+**Migraciones:** 13 archivos SQL ejecutables secuencialmente
 
 ---
 
@@ -32,6 +32,7 @@ CREATE TYPE account_type AS ENUM ('personal', 'family');
 CREATE TYPE expense_type AS ENUM ('one-time', 'recurring');
 CREATE TYPE income_type AS ENUM ('one-time', 'recurring');
 CREATE TYPE transaction_type AS ENUM ('add', 'withdraw');
+CREATE TYPE recurrence_frequency AS ENUM ('daily', 'weekly', 'monthly', 'yearly');
 ```
 
 ---
@@ -120,9 +121,70 @@ CREATE TABLE family_members (
 
 ---
 
-### 4. `expenses`
+### 4. `recurring_expenses`
 
-Gastos (one-time o recurring).
+**Templates de gastos recurrentes** (patrón: Recurring Templates). Los gastos reales se generan automáticamente en la tabla `expenses`.
+
+```sql
+CREATE TABLE recurring_expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    description TEXT NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL CHECK (amount > 0),
+    currency currency NOT NULL,
+    category_id UUID REFERENCES expense_categories(id) ON DELETE SET NULL,
+    family_member_id UUID REFERENCES family_members(id) ON DELETE SET NULL,
+    
+    -- Recurrence configuration
+    recurrence_frequency recurrence_frequency NOT NULL,
+    recurrence_interval INT NOT NULL DEFAULT 1 CHECK (recurrence_interval > 0),
+    recurrence_day_of_month INT CHECK (recurrence_day_of_month BETWEEN 1 AND 31),
+    recurrence_day_of_week INT CHECK (recurrence_day_of_week BETWEEN 0 AND 6),
+    
+    -- Time boundaries
+    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    end_date DATE CHECK (end_date IS NULL OR end_date >= start_date),
+    total_occurrences INT CHECK (total_occurrences IS NULL OR total_occurrences > 0),
+    current_occurrence INT DEFAULT 0 CHECK (current_occurrence >= 0),
+    
+    -- Multi-currency (optional)
+    exchange_rate DECIMAL(15, 6) CHECK (exchange_rate IS NULL OR exchange_rate > 0),
+    amount_in_primary_currency DECIMAL(15, 2) CHECK (amount_in_primary_currency IS NULL OR amount_in_primary_currency > 0),
+    
+    -- Status
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Campos de recurrencia:**
+- `recurrence_frequency` - Frecuencia: daily, weekly, monthly, yearly
+- `recurrence_interval` - Cada N períodos (ej: 2 = cada 2 semanas)
+- `recurrence_day_of_month` - Día del mes (1-31) para monthly/yearly
+- `recurrence_day_of_week` - Día de semana (0=Domingo, 6=Sábado) para weekly
+- `start_date` - Cuándo empezar a generar ocurrencias
+- `end_date` - Cuándo parar (NULL = indefinido)
+- `total_occurrences` - Límite de ocurrencias (ej: 6 cuotas). NULL = indefinido
+- `current_occurrence` - Contador de ocurrencias generadas
+- `is_active` - Si false, no genera más ocurrencias (soft delete)
+
+**Constraints:**
+- Monthly/yearly REQUIERE `day_of_month` (1-31)
+- Weekly REQUIERE `day_of_week` (0-6)
+- `current_occurrence` <= `total_occurrences`
+- `amount` debe ser positivo
+
+**Notas:**
+- Un CRON job diario genera las ocurrencias en la tabla `expenses` con FK `recurring_expense_id`
+- Editar el template actualiza gastos FUTUROS, preserva histórico
+- Desactivar (`is_active = false`) detiene generación sin borrar datos
+
+---
+
+### 5. `expenses`
+
+Gastos reales (one-time o generados desde `recurring_expenses`).
 
 ```sql
 CREATE TABLE expenses (
@@ -138,6 +200,7 @@ CREATE TABLE expenses (
     expense_type expense_type NOT NULL DEFAULT 'one-time',
     date DATE NOT NULL,
     end_date DATE,
+    recurring_expense_id UUID REFERENCES recurring_expenses(id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     
@@ -152,15 +215,23 @@ CREATE TABLE expenses (
 - `exchange_rate` - Tasa de conversión (snapshot)
 - `amount_in_primary_currency` - Monto convertido a moneda de la cuenta
 
+**Campos de recurrencia:**
+- `recurring_expense_id` - FK al template si fue auto-generado. NULL para one-time o recurring legacy
+
 **Constraints:**
 - One-time NO puede tener `end_date`
 - Recurring puede tener `end_date` opcional (null = infinito)
 - `amount` debe ser positivo
 - `end_date` >= `date` si existe
 
+**Notas:**
+- `expense_type = 'recurring'` con `recurring_expense_id = NULL` = sistema legacy (sin template)
+- `expense_type = 'recurring'` con `recurring_expense_id != NULL` = generado desde template
+- Estadísticas consultan esta tabla directamente (solo gastos reales)
+
 ---
 
-### 5. `incomes`
+### 6. `incomes`
 
 Ingresos (one-time o recurring). Estructura idéntica a `expenses`.
 
@@ -190,7 +261,7 @@ CREATE TABLE incomes (
 
 ---
 
-### 6. `expense_categories`
+### 7. `expense_categories`
 
 Categorías de gastos (predefinidas + custom por cuenta).
 
