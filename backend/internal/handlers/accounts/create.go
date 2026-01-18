@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/database"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
 	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
@@ -137,6 +138,16 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 	).Scan(&createdAt)
 
 	if err != nil {
+		// Detectar violación de constraint UNIQUE para nombres duplicados
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == "23505" && pgErr.ConstraintName == "idx_accounts_unique_name_per_user" {
+				c.JSON(http.StatusConflict, gin.H{
+					"error": "Ya existe una cuenta con ese nombre. Por favor, elige un nombre diferente.",
+				})
+				return
+			}
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Error creando cuenta",
 			"details": err.Error(),

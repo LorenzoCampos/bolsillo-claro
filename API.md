@@ -235,9 +235,14 @@ Crear cuenta (personal o familiar).
 
 **Validations:**
 - `type` obligatorio: `'personal'` o `'family'`
+- `name` debe ser único por usuario (case-insensitive)
 - Family requiere ≥1 miembro
 - Personal no puede tener miembros
 - Auto-crea meta "Ahorro General"
+
+**Errors:**
+- `400` - Datos inválidos
+- `409` - Ya existe una cuenta con ese nombre
 
 ---
 
