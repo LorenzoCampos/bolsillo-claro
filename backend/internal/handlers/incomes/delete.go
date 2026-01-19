@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 func DeleteIncome(db *pgxpool.Pool) gin.HandlerFunc {
@@ -37,6 +39,17 @@ func DeleteIncome(db *pgxpool.Pool) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "income not found or does not belong to this account"})
 			return
 		}
+
+		// Obtener user_id del contexto para logging
+		userID, _ := middleware.GetUserID(c)
+
+		// Log de eliminación exitosa
+		logger.Info("income.deleted", "Ingreso eliminado", map[string]interface{}{
+			"income_id":  incomeID,
+			"account_id": accountID,
+			"user_id":    userID,
+			"ip":         c.ClientIP(),
+		})
 
 		// Return success with no content
 		c.JSON(http.StatusOK, gin.H{

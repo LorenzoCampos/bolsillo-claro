@@ -55,6 +55,12 @@ POST   /recurring-expenses
 GET    /recurring-expenses/:id
 PUT    /recurring-expenses/:id
 DELETE /recurring-expenses/:id
+
+GET    /recurring-incomes
+POST   /recurring-incomes
+GET    /recurring-incomes/:id
+PUT    /recurring-incomes/:id
+DELETE /recurring-incomes/:id
 ```
 
 ### Headers
@@ -75,8 +81,9 @@ X-Account-ID: <account_uuid>
 ```
 ARS - Peso argentino
 USD - Dólar estadounidense
-EUR - Euro
 ```
+
+**Note:** EUR was removed in version 1.1.0 as it's not in the database ENUM.
 
 ### Account Types
 
@@ -876,6 +883,40 @@ Desactivar template (soft delete - detiene generación futura).
 - NO borra el template de la DB
 - NO borra los gastos ya generados
 - Detiene la generación de nuevos gastos
+
+---
+
+## 🔁 Recurring Incomes (Templates)
+
+**Patrón "Recurring Templates":** Idéntico a recurring-expenses, pero genera automáticamente ingresos reales en la tabla `incomes` vía CRON job diario (ejecuta a las 00:01 UTC).
+
+**Endpoints:** Misma estructura que `/recurring-expenses`
+
+- `POST /recurring-incomes` - Crear template de ingreso recurrente
+- `GET /recurring-incomes` - Listar templates (acepta `is_active`, `frequency`, `page`, `limit`)
+- `GET /recurring-incomes/:id` - Obtener detalle con `generated_incomes_count`
+- `PUT /recurring-incomes/:id` - Actualizar template (solo afecta futuros ingresos)
+- `DELETE /recurring-incomes/:id` - Soft delete (marca `is_active = false`)
+
+**Request Example (Salario mensual):**
+```json
+{
+  "description": "Salario Mensual",
+  "amount": 500000,
+  "currency": "ARS",
+  "recurrence_frequency": "monthly",
+  "recurrence_day_of_month": 1,
+  "start_date": "2026-01-01"
+}
+```
+
+**Use Cases:**
+- Salario mensual (monthly, day 1 o día de cobro)
+- Ingresos por alquiler (monthly, día específico)
+- Freelance recurrente (weekly/monthly)
+- Rentas de inversiones (monthly/yearly)
+
+**Nota:** Ver documentación completa en sección `/recurring-expenses` - funcionamiento idéntico.
 
 ---
 

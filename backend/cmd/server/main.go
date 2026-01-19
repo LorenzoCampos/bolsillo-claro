@@ -39,7 +39,7 @@ func main() {
 	srv := server.New(cfg, db)
 	fmt.Println("✅ Servidor HTTP creado")
 
-	// Paso 3.5: Iniciar CRON scheduler para gastos recurrentes
+	// Paso 3.5: Iniciar CRON scheduler para gastos e ingresos recurrentes
 	c := cron.New()
 	
 	// Ejecutar generación diaria a las 00:01 (1 minuto después de medianoche)
@@ -50,6 +50,12 @@ func main() {
 		if err != nil {
 			log.Printf("❌ Error en generación de gastos recurrentes: %v", err)
 		}
+		
+		fmt.Println("💰 Ejecutando generación diaria de ingresos recurrentes...")
+		err = scheduler.GenerateDailyRecurringIncomes(db.Pool)
+		if err != nil {
+			log.Printf("❌ Error en generación de ingresos recurrentes: %v", err)
+		}
 	})
 	
 	// Iniciar CRON
@@ -58,10 +64,16 @@ func main() {
 	
 	// Ejecutar una vez al arrancar el servidor (catchup de hoy si es necesario)
 	go func() {
-		fmt.Println("🔁 Ejecutando generación inicial (catchup)...")
+		fmt.Println("🔁 Ejecutando generación inicial de gastos (catchup)...")
 		err := scheduler.GenerateDailyRecurringExpenses(db.Pool)
 		if err != nil {
-			log.Printf("❌ Error en generación inicial: %v", err)
+			log.Printf("❌ Error en generación inicial de gastos: %v", err)
+		}
+		
+		fmt.Println("💰 Ejecutando generación inicial de ingresos (catchup)...")
+		err = scheduler.GenerateDailyRecurringIncomes(db.Pool)
+		if err != nil {
+			log.Printf("❌ Error en generación inicial de ingresos: %v", err)
 		}
 	}()
 

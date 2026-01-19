@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 type CreateIncomeRequest struct {
@@ -14,7 +16,7 @@ type CreateIncomeRequest struct {
 	CategoryID     *string `json:"category_id"`      // Optional
 	Description    string  `json:"description" binding:"required"`
 	Amount         float64 `json:"amount" binding:"required,gt=0"`
-	Currency       string  `json:"currency" binding:"required,oneof=ARS USD EUR"`
+	Currency       string  `json:"currency" binding:"required,oneof=ARS USD"`
 	IncomeType     string  `json:"income_type" binding:"required,oneof=one-time recurring"`
 	Date           string  `json:"date" binding:"required"` // Format: YYYY-MM-DD
 	EndDate        *string `json:"end_date"`                // Optional: for recurring
@@ -205,6 +207,21 @@ func CreateIncome(db *pgxpool.Pool) gin.HandlerFunc {
 				categoryName = &name
 			}
 		}
+
+		// Obtener user_id del contexto para logging
+		userID, _ := middleware.GetUserID(c)
+
+		// Log de creación exitosa
+		logger.Info("income.created", "Ingreso creado", map[string]interface{}{
+			"income_id":   incomeID.String(),
+			"account_id":  accountID,
+			"user_id":     userID,
+			"description": req.Description,
+			"amount":      req.Amount,
+			"currency":    req.Currency,
+			"income_type": req.IncomeType,
+			"ip":          c.ClientIP(),
+		})
 
 		// Build response
 		response := IncomeResponse{

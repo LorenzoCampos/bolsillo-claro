@@ -14,6 +14,7 @@ import (
 	expensesHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/expenses"
 	incomesHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/incomes"
 	recurringExpensesHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/recurring_expenses"
+	recurringIncomesHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/recurring_incomes"
 	savingsGoalsHandler "github.com/LorenzoCampos/bolsillo-claro/internal/handlers/savings_goals"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
 )
@@ -181,6 +182,18 @@ func (s *Server) setupRoutes() {
 			recurringExpensesRoutes.GET("/:id", recurringExpensesHandler.GetRecurringExpense(s.db.Pool))
 			recurringExpensesRoutes.PUT("/:id", recurringExpensesHandler.UpdateRecurringExpense(s.db.Pool))
 			recurringExpensesRoutes.DELETE("/:id", recurringExpensesHandler.DeleteRecurringExpense(s.db.Pool))
+		}
+
+		// Rutas de recurring incomes (protegidas - requieren auth + account)
+		recurringIncomesRoutes := api.Group("/recurring-incomes")
+		recurringIncomesRoutes.Use(authMiddleware)
+		recurringIncomesRoutes.Use(accountMiddleware)
+		{
+			recurringIncomesRoutes.POST("", recurringIncomesHandler.CreateRecurringIncome(s.db.Pool))
+			recurringIncomesRoutes.GET("", recurringIncomesHandler.ListRecurringIncomes(s.db.Pool))
+			recurringIncomesRoutes.GET("/:id", recurringIncomesHandler.GetRecurringIncome(s.db.Pool))
+			recurringIncomesRoutes.PUT("/:id", recurringIncomesHandler.UpdateRecurringIncome(s.db.Pool))
+			recurringIncomesRoutes.DELETE("/:id", recurringIncomesHandler.DeleteRecurringIncome(s.db.Pool))
 		}
 	}
 }

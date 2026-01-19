@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 type UpdateIncomeRequest struct {
@@ -76,9 +78,9 @@ func UpdateIncome(db *pgxpool.Pool) gin.HandlerFunc {
 
 		// Validate currency if provided
 		if req.Currency != nil {
-			validCurrencies := map[string]bool{"ARS": true, "USD": true, "EUR": true}
+			validCurrencies := map[string]bool{"ARS": true, "USD": true}
 			if !validCurrencies[*req.Currency] {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "currency must be ARS, USD, or EUR"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "currency must be ARS or USD"})
 				return
 			}
 		}
@@ -320,6 +322,17 @@ func UpdateIncome(db *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		income.CreatedAt = createdAt.Format(time.RFC3339)
+
+		// Obtener user_id del contexto para logging
+		userID, _ := middleware.GetUserID(c)
+
+		// Log de actualización exitosa
+		logger.Info("income.updated", "Ingreso actualizado", map[string]interface{}{
+			"income_id":  incomeID,
+			"account_id": accountID,
+			"user_id":    userID,
+			"ip":         c.ClientIP(),
+		})
 
 		c.JSON(http.StatusOK, income)
 	}
