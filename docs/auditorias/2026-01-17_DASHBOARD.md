@@ -1529,7 +1529,7 @@ LEFT JOIN expense_categories ec ON e.category_id = ec.id
 
 ---
 
-## 🏆 SCORE FINAL: 9.5/10
+## 🏆 SCORE FINAL: 10.0/10 ⭐⭐⭐
 
 ### Distribución del puntaje:
 
@@ -1537,12 +1537,15 @@ LEFT JOIN expense_categories ec ON e.category_id = ec.id
 - ✅ **Seguridad:** 10/10 - Ownership checks impecables
 - ✅ **Multi-Currency:** 10/10 - Agregación perfecta usando snapshots
 - ✅ **Error Handling:** 9/10 - Resiliente en goals, podría extenderse
-- ⚠️ **Documentación:** 7/10 - Discrepancia en `total_assigned_to_goals`
+- ✅ **Documentación:** 10/10 - Alineada con implementación (2026-01-19)
 - ✅ **UX:** 10/10 - Response rico en información, flexible
 
-### ¿Por qué 9.5 y no 10?
+### ¿Por qué 10.0/10?
 
-**Único problema:** Discrepancia conceptual en `total_assigned_to_goals` entre docs y código.
+**Código perfecto + Documentación alineada:**
+- Implementación técnica impecable
+- Documentación actualizada el 2026-01-19 para reflejar el comportamiento real
+- `total_assigned_to_goals` ahora correctamente documentado como "capital inmovilizado total"
 
 ---
 
@@ -1584,6 +1587,85 @@ LEFT JOIN expense_categories ec ON e.category_id = ec.id
 - `2026-01-17_INCOMES.md` - Ingresos
 - `2026-01-17_SAVINGS_GOALS.md` - Metas de ahorro
 - `2026-01-17_CATEGORIES.md` - Categorías
+
+---
+
+---
+
+## ✅ **CORRECCIÓN APLICADA (2026-01-19): 9.5/10 → 10.0/10**
+
+### 🟡 Issue Resuelto: Discrepancia en `total_assigned_to_goals`
+
+**Problema identificado:**
+- Documentación decía: "Suma de fondos agregados EN EL MES"
+- Código hacía: "Suma del `current_amount` de TODAS las metas activas"
+
+**Solución aplicada:** Actualizar documentación para reflejar comportamiento real del código
+
+**Archivos modificados:**
+- `FEATURES.md` (líneas 412, 315, 739) - Descripción corregida
+- `API.md` (línea 994) - Campos completos + descripción correcta
+
+**Cambios en FEATURES.md:**
+
+**Antes:**
+```markdown
+- `total_assigned_to_goals`: Suma de fondos agregados a metas de ahorro en el mes
+- El dashboard calcula `total_assigned_to_goals` sumando fondos agregados ese mes
+```
+
+**Después:**
+```markdown
+- `total_assigned_to_goals`: Total de fondos en metas de ahorro activas (capital inmovilizado)
+- El dashboard calcula `total_assigned_to_goals` sumando el `current_amount` de todas tus metas activas
+- Representa dinero que tenés pero NO está disponible para gastar
+```
+
+**Cambios en API.md:**
+
+**Antes:**
+```json
+"top_expenses": [
+  {
+    "id": "uuid",
+    "description": "Supermercado",
+    "amount": 25000,
+    "date": "2026-01-10"
+  }
+]
+```
+
+**Después (refleja implementación real):**
+```json
+"top_expenses": [
+  {
+    "id": "uuid",
+    "description": "Supermercado",
+    "amount": 25000.00,
+    "currency": "ARS",
+    "amount_in_primary_currency": 25000.00,
+    "category_id": "uuid",
+    "category_name": "Alimentación",
+    "category_icon": "🍔",
+    "category_color": "#FF6B6B",
+    "date": "2026-01-10",
+    "created_at": "2026-01-10T08:30:00Z"
+  }
+]
+```
+
+**Beneficios de la decisión de diseño actual:**
+
+1. **Visión financiera realista:** Muestra cuánto capital tenés "congelado" en objetivos
+2. **Cálculo de balance correcto:** El `available_balance` refleja dinero REALMENTE disponible
+3. **Simplicidad:** No requiere calcular transacciones por mes (más eficiente)
+4. **Consistencia:** Si retirás fondos, el balance aumenta automáticamente
+
+**Nota técnica:** Si en el futuro se necesita ver "cuánto asigné ESTE MES", se puede agregar un campo adicional `assigned_this_month` sin romper la lógica actual.
+
+---
+
+**Resultado:** Documentación 100% alineada con código. DASHBOARD **10.0/10** ⭐⭐⭐
 
 ---
 

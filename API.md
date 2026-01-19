@@ -1007,8 +1007,15 @@ Resumen financiero del mes.
     {
       "id": "uuid",
       "description": "Supermercado",
-      "amount": 25000,
-      "date": "2026-01-10"
+      "amount": 25000.00,
+      "currency": "ARS",
+      "amount_in_primary_currency": 25000.00,
+      "category_id": "uuid",
+      "category_name": "Alimentación",
+      "category_icon": "🍔",
+      "category_color": "#FF6B6B",
+      "date": "2026-01-10",
+      "created_at": "2026-01-10T08:30:00Z"
     }
   ],
   "recent_transactions": [
@@ -1016,12 +1023,33 @@ Resumen financiero del mes.
       "id": "uuid",
       "type": "expense",
       "description": "Supermercado",
-      "amount": 25000,
-      "date": "2026-01-10"
+      "amount": 25000.00,
+      "currency": "ARS",
+      "amount_in_primary_currency": 25000.00,
+      "category_id": "uuid",
+      "category_name": "Alimentación",
+      "date": "2026-01-10",
+      "created_at": "2026-01-10T08:30:00Z"
+    },
+    {
+      "id": "uuid",
+      "type": "income",
+      "description": "Sueldo",
+      "amount": 200000.00,
+      "currency": "ARS",
+      "amount_in_primary_currency": 200000.00,
+      "category_id": "uuid",
+      "category_name": "Salario",
+      "date": "2026-01-05",
+      "created_at": "2026-01-05T10:00:00Z"
     }
   ]
 }
 ```
+
+**Campos importantes:**
+- `total_assigned_to_goals`: Total de fondos en metas activas (capital inmovilizado). Representa la suma del `current_amount` de todas las metas de ahorro activas, NO solo fondos agregados este mes.
+- `available_balance`: Dinero disponible para gastar = `total_income - total_expenses - total_assigned_to_goals`
 
 **Cálculo:**
 ```
@@ -1029,9 +1057,9 @@ available_balance = total_income - total_expenses - total_assigned_to_goals
 ```
 
 **Notas:**
-- Todos los montos en moneda primaria
-- `top_expenses`: Máximo 5
-- `recent_transactions`: Máximo 10 (expenses + incomes mezclados)
+- Todos los montos en moneda primaria (conversión automática vía `amount_in_primary_currency`)
+- `top_expenses`: Máximo 5 gastos más grandes del mes (incluye info de categoría si existe)
+- `recent_transactions`: Máximo 10 transacciones (expenses + incomes mezclados, ordenados por `created_at DESC`)
 
 ---
 
