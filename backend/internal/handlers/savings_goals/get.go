@@ -2,6 +2,7 @@ package savings_goals
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,10 +21,19 @@ type SavingsGoalTransaction struct {
 	CreatedAt       string  `json:"created_at"`
 }
 
+// PaginationMetadata represents pagination information
+type PaginationMetadata struct {
+	CurrentPage int `json:"current_page"`
+	TotalPages  int `json:"total_pages"`
+	TotalCount  int `json:"total_count"`
+	Limit       int `json:"limit"`
+}
+
 // SavingsGoalDetailResponse represents a savings goal with its transaction history
 type SavingsGoalDetailResponse struct {
 	SavingsGoalResponse
 	Transactions []SavingsGoalTransaction `json:"transactions"`
+	Pagination   PaginationMetadata       `json:"pagination"`
 }
 
 // GetSavingsGoal handles GET /api/savings-goals/:id
@@ -92,31 +102,67 @@ func GetSavingsGoal(db *pgxpool.Pool) gin.HandlerFunc {
 			goal.ProgressPercentage = 0
 		}
 
-		// Calculate required_monthly_savings si hay deadline
-		goal.RequiredMonthlySavings = calculateRequiredMonthlySavings(goal.CurrentAmount, goal.TargetAmount, deadline)
+	// Calculate required_monthly_savings si hay deadline
+	goal.RequiredMonthlySavings = calculateRequiredMonthlySavings(goal.CurrentAmount, goal.TargetAmount, deadline)
 
-		goal.CreatedAt = createdAt.Format(time.RFC3339)
-		goal.UpdatedAt = updatedAt.Format(time.RFC3339)
+	goal.CreatedAt = createdAt.Format(time.RFC3339)
+	goal.UpdatedAt = updatedAt.Format(time.RFC3339)
 
-		// Query transactions history
-		transactionsQuery := `
-			SELECT 
-				id, amount, transaction_type, description, 
-				date::TEXT, created_at::TEXT
-			FROM savings_goal_transactions
-			WHERE savings_goal_id = $1
-			ORDER BY date DESC, created_at DESC
-		`
+	// Parse pagination parameters
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "20")
 
-		rows, err := db.Query(ctx, transactionsQuery, goalID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch transactions"})
-			return
-		}
-		defer rows.Close()
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
 
-		transactions := []SavingsGoalTransaction{}
-		for rows.Next() {
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 20
+	}
+	// Max limit is 100 to prevent huge responses
+	if limit > 100 {
+		limit = 100
+	}
+
+	offset := (page - 1) * limit
+
+	// Count total transactions
+	countQuery := `SELECT COUNT(*) FROM savings_goal_transactions WHERE savings_goal_id = $1`
+	var totalCount int
+	err = db.QueryRow(ctx, countQuery, goalID).Scan(&totalCount)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to count transactions"})
+		return
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	// Query transactions history with pagination
+	transactionsQuery := `
+		SELECT 
+			id, amount, transaction_type, description, 
+			date::TEXT, created_at::TEXT
+		FROM savings_goal_transactions
+		WHERE savings_goal_id = $1
+		ORDER BY date DESC, created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := db.Query(ctx, transactionsQuery, goalID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch transactions"})
+		return
+	}
+	defer rows.Close()
+
+	transactions := []SavingsGoalTransaction{}
+	for rows.Next() {
 			var txn SavingsGoalTransaction
 			var description *string
 
@@ -139,17 +185,26 @@ func GetSavingsGoal(db *pgxpool.Pool) gin.HandlerFunc {
 			transactions = append(transactions, txn)
 		}
 
-		if err := rows.Err(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error reading transactions"})
-			return
-		}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error reading transactions"})
+		return
+	}
 
-		// Build response
-		response := SavingsGoalDetailResponse{
-			SavingsGoalResponse: goal,
-			Transactions:        transactions,
-		}
+	// Build pagination metadata
+	pagination := PaginationMetadata{
+		CurrentPage: page,
+		TotalPages:  totalPages,
+		TotalCount:  totalCount,
+		Limit:       limit,
+	}
 
-		c.JSON(http.StatusOK, response)
+	// Build response
+	response := SavingsGoalDetailResponse{
+		SavingsGoalResponse: goal,
+		Transactions:        transactions,
+		Pagination:          pagination,
+	}
+
+	c.JSON(http.StatusOK, response)
 	}
 }

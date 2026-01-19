@@ -1140,9 +1140,13 @@ Listar metas.
 
 ### GET /savings-goals/:id
 
-Detalle con historial de transacciones.
+Detalle con historial de transacciones (paginado).
 
 **Headers:** `Authorization`, `X-Account-ID`
+
+**Query Params:**
+- `page` (opcional): Número de página (default: 1)
+- `limit` (opcional): Transacciones por página (default: 20, max: 100)
 
 **Response (200):**
 ```json
@@ -1154,20 +1158,87 @@ Detalle con historial de transacciones.
   "transactions": [
     {
       "id": "uuid",
-      "type": "add",
       "amount": 30000,
+      "transaction_type": "deposit",
       "description": "Ahorro enero",
       "date": "2026-01-15",
       "created_at": "2026-01-15T10:00:00Z"
     },
     {
       "id": "uuid",
-      "type": "add",
       "amount": 20000,
-      "date": "2026-01-20"
+      "transaction_type": "deposit",
+      "date": "2026-01-20",
+      "created_at": "2026-01-20T14:30:00Z"
     }
-  ]
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 1,
+    "total_count": 2,
+    "limit": 20
+  }
 }
+```
+
+**Note:** Las transacciones de tipo `withdrawal` se muestran con `amount` negativo para facilitar la visualización.
+
+---
+
+### GET /savings-goals/:id/transactions
+
+Obtener solo el historial de transacciones de una meta (endpoint dedicado).
+
+**Headers:** `Authorization`, `X-Account-ID`
+
+**Query Params:**
+- `page` (opcional): Número de página (default: 1)
+- `limit` (opcional): Transacciones por página (default: 20, max: 100)
+- `type` (opcional): `all` | `deposit` | `withdrawal` (default: `all`)
+  - `all` - Todas las transacciones
+  - `deposit` - Solo depósitos (fondos agregados)
+  - `withdrawal` - Solo retiros (fondos retirados)
+
+**Response (200):**
+```json
+{
+  "transactions": [
+    {
+      "id": "uuid",
+      "amount": 30000,
+      "transaction_type": "deposit",
+      "description": "Ahorro enero",
+      "date": "2026-01-15",
+      "created_at": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "uuid",
+      "amount": -10000,
+      "transaction_type": "withdrawal",
+      "description": "Adelanto para pasajes",
+      "date": "2026-01-18",
+      "created_at": "2026-01-18T16:00:00Z"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 3,
+    "total_count": 47,
+    "limit": 20
+  }
+}
+```
+
+**Validación:**
+- `type` inválido → HTTP 400: `"type must be 'all', 'deposit', or 'withdrawal'"`
+
+**Ejemplo de uso:**
+```bash
+# Obtener solo depósitos paginados
+GET /api/savings-goals/:id/transactions?type=deposit&page=1&limit=10
+
+# Obtener solo retiros
+GET /api/savings-goals/:id/transactions?type=withdrawal
 ```
 
 ---
