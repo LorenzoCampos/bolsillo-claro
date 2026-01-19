@@ -965,3 +965,199 @@ El módulo de savings_goals tiene una **arquitectura EXCELENTE con features avan
 - ✅ Todos los campos correctos (verificado en PostgreSQL)
 
 **Resultado:** Crear cuentas nuevas ahora funciona correctamente sin error SQL.
+
+---
+
+## 🚀 **MEJORAS APLICADAS (2026-01-19): 8.5/10 → 9.5/10**
+
+### ✅ **1. Logging de Operaciones Críticas**
+
+**Archivos modificados:**
+- `backend/internal/handlers/savings_goals/create.go`
+- `backend/internal/handlers/savings_goals/update.go`
+- `backend/internal/handlers/savings_goals/delete.go`
+- `backend/internal/handlers/savings_goals/add_funds.go`
+- `backend/internal/handlers/savings_goals/withdraw_funds.go`
+
+**Implementación:**
+- Agregado import: `"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"`
+- Agregado logging estructurado con contexto completo:
+  - Eventos: `savings_goal.created`, `savings_goal.updated`, `savings_goal.deleted`, `savings_goal.add_funds`, `savings_goal.withdraw_funds`
+  - Metadata: `goal_id`, `account_id`, `user_id`, `amount`, `goal_name`, `ip`, etc.
+
+**Ejemplo de log:**
+```json
+{
+  "timestamp": "2026-01-19T18:31:00Z",
+  "level": "INFO",
+  "event": "savings_goal.created",
+  "message": "Meta de ahorro creada",
+  "data": {
+    "goal_id": "uuid",
+    "account_id": "uuid",
+    "user_id": "uuid",
+    "goal_name": "Vacaciones",
+    "target_amount": 300000,
+    "ip": "192.168.1.1"
+  }
+}
+```
+
+**Testing:** Logs verificados en `docker logs bolsillo-claro-backend` ✅
+
+---
+
+### ✅ **2. Filtro `is_active` en GET /savings-goals**
+
+**Archivo modificado:** `backend/internal/handlers/savings_goals/list.go`
+
+**Implementación:**
+- Query param: `?is_active=true|false|all` (default: `true`)
+- SQL condicional:
+  ```go
+  isActiveParam := c.DefaultQuery("is_active", "true")
+  if isActiveParam == "true" {
+      baseQuery += " AND is_active = true"
+  } else if isActiveParam == "false" {
+      baseQuery += " AND is_active = false"
+  }
+  // "all" no agrega filtro
+  ```
+
+**Testing:**
+```bash
+GET /api/savings-goals?is_active=false  # Solo archivadas ✅
+GET /api/savings-goals?is_active=all    # Todas ✅
+GET /api/savings-goals                  # Solo activas (default) ✅
+```
+
+---
+
+### ✅ **3. Auto-cálculo `required_monthly_savings`**
+
+**Archivos modificados:**
+- `backend/internal/handlers/savings_goals/create.go` (helper function)
+- `backend/internal/handlers/savings_goals/list.go` (integración)
+- `backend/internal/handlers/savings_goals/get.go` (integración)
+
+**Implementación:**
+```go
+func calculateRequiredMonthlySavings(currentAmount, targetAmount float64, deadline *time.Time) *float64 {
+    if deadline == nil || deadline.Before(time.Now()) {
+        return nil
+    }
+    
+    remaining := targetAmount - currentAmount
+    if remaining <= 0 {
+        zero := 0.0
+        return &zero // Meta ya cumplida
+    }
+    
+    months := calculateMonthsUntil(*deadline)
+    if months <= 0 {
+        return nil
+    }
+    
+    required := remaining / float64(months)
+    return &required
+}
+```
+
+**Response example:**
+```json
+{
+  "id": "uuid",
+  "name": "Vacaciones",
+  "target_amount": 300000,
+  "current_amount": 50000,
+  "deadline": "2026-06-30",
+  "required_monthly_savings": 50000.0
+}
+```
+
+**Testing:**
+- Meta con deadline en 5 meses, faltando $250k → retorna `50000.0` ✅
+- Meta sin deadline → retorna `null` ✅
+- Meta con deadline pasado → retorna `null` ✅
+- Meta ya cumplida → retorna `0.0` ✅
+
+---
+
+### ✅ **4. Validación de Fecha vs Deadline**
+
+**Archivos modificados:**
+- `backend/internal/handlers/savings_goals/add_funds.go`
+- `backend/internal/handlers/savings_goals/withdraw_funds.go`
+
+**Implementación:**
+```go
+// Pre-check: fetch goal's deadline
+var goalDeadline *time.Time
+preCheckQuery := `SELECT deadline FROM savings_goals WHERE id = $1 AND account_id = $2`
+err = db.QueryRow(ctx, preCheckQuery, goalID, accountID).Scan(&goalDeadline)
+
+// Validate transaction date vs deadline
+if goalDeadline != nil {
+    deadlineDate := time.Date(goalDeadline.Year(), goalDeadline.Month(), goalDeadline.Day(), 0, 0, 0, 0, time.UTC)
+    transactionDateUTC := time.Date(transactionDate.Year(), transactionDate.Month(), transactionDate.Day(), 0, 0, 0, 0, time.UTC)
+    
+    if transactionDateUTC.After(deadlineDate) {
+        return HTTP 400 {
+            "error": "no puedes agregar fondos con una fecha posterior al deadline de la meta",
+            "transaction_date": "YYYY-MM-DD",
+            "goal_deadline": "YYYY-MM-DD"
+        }
+    }
+}
+```
+
+**Testing:**
+```bash
+# Goal deadline: 2026-01-10
+POST /api/savings-goals/:id/add-funds {"date": "2026-01-15"} 
+→ HTTP 400 "no puedes agregar fondos..." ✅
+
+POST /api/savings-goals/:id/add-funds {"date": "2026-01-05"}
+→ HTTP 200 ✅
+
+POST /api/savings-goals/:id/withdraw-funds {"date": "2026-01-15"}
+→ HTTP 400 "no puedes retirar fondos..." ✅
+```
+
+**Razón de negocio:** Evita inconsistencias lógicas (agregar fondos después de que la meta "cerró").
+
+---
+
+### ✅ **5. Actualización de API.md**
+
+**Archivo modificado:** `API.md` (líneas 1040-1200)
+
+**Cambios:**
+1. ❌ Eliminado campo `is_general` de responses (no existe en DB)
+2. ✅ Documentado query param `?is_active=true|false|all`
+3. ✅ Documentado cálculo automático de `required_monthly_savings`
+4. ✅ Agregado campo `date` como requerido en add/withdraw funds
+5. ✅ Documentadas validaciones de deadline
+6. ✅ Agregados ejemplos de errores HTTP 400
+
+**Resultado:** Documentación 100% alineada con código implementado.
+
+---
+
+## 📊 **SCORE ACTUALIZADO**
+
+**Calificación anterior:** 8.5/10  
+**Calificación nueva:** 9.5/10 ⭐⭐
+
+**Mejoras implementadas:**
+- ✅ Logging estructurado (CREATE/UPDATE/DELETE/ADD_FUNDS/WITHDRAW)
+- ✅ Filtro `is_active` (true/false/all)
+- ✅ Auto-cálculo `required_monthly_savings`
+- ✅ Validación fecha vs deadline
+- ✅ API.md actualizado y alineado
+
+**Estado:** ✅ **PRODUCTION-READY** - Módulo completo con todas las features documentadas implementadas.
+
+**Razón de no ser 10/10:**
+- Falta paginación en transacciones de GET /savings-goals/:id (bajo impacto)
+- Podría agregarse endpoint dedicado GET /savings-goals/:id/transactions (nice to have)

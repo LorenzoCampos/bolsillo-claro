@@ -21,16 +21,27 @@ func ListSavingsGoals(db *pgxpool.Pool) gin.HandlerFunc {
 
 		ctx := c.Request.Context()
 
-		// Query all active savings goals for this account
+		// Get is_active filter from query param (default: "true")
+		// Options: "true", "false", "all"
+		isActiveParam := c.DefaultQuery("is_active", "true")
+
+		// Build query based on is_active filter
 		query := `
 			SELECT 
 				id, account_id, name, description, target_amount, 
 				current_amount, currency, saved_in, deadline, 
 				is_active, created_at, updated_at
 			FROM savings_goals
-			WHERE account_id = $1 AND is_active = true
-			ORDER BY created_at DESC
-		`
+			WHERE account_id = $1`
+
+		if isActiveParam == "true" {
+			query += " AND is_active = true"
+		} else if isActiveParam == "false" {
+			query += " AND is_active = false"
+		}
+		// Si es "all", no agrega filtro (muestra todas)
+
+		query += " ORDER BY created_at DESC"
 
 		rows, err := db.Query(ctx, query, accountID)
 		if err != nil {
@@ -71,6 +82,9 @@ func ListSavingsGoals(db *pgxpool.Pool) gin.HandlerFunc {
 			} else {
 				goal.ProgressPercentage = 0
 			}
+
+			// Calculate required_monthly_savings si hay deadline
+			goal.RequiredMonthlySavings = calculateRequiredMonthlySavings(goal.CurrentAmount, goal.TargetAmount, deadline)
 
 			goal.CreatedAt = createdAt.Format(time.RFC3339)
 			goal.UpdatedAt = updatedAt.Format(time.RFC3339)

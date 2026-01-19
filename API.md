@@ -1063,7 +1063,6 @@ Crear meta de ahorro.
   "current_amount": 0.00,
   "currency": "ARS",
   "deadline": "2026-06-30",
-  "is_general": false,
   "is_active": true,
   "progress_percentage": 0.0,
   "required_monthly_savings": 50000.00,
@@ -1072,9 +1071,8 @@ Crear meta de ahorro.
 ```
 
 **Fields:**
-- `deadline` - Opcional (null = sin deadline)
-- `is_general` - Auto-false (solo 1 meta general por cuenta)
-- `required_monthly_savings` - Solo si tiene deadline
+- `deadline` - Opcional (null = sin deadline, debe ser fecha futura)
+- `required_monthly_savings` - Auto-calculado basado en deadline y monto faltante. Retorna `null` si no hay deadline o si el deadline ya pasó. Fórmula: `(target_amount - current_amount) / meses_restantes`
 
 ---
 
@@ -1085,7 +1083,10 @@ Listar metas.
 **Headers:** `Authorization`, `X-Account-ID`
 
 **Query Params:**
-- `is_active` (opcional): `true` / `false` (default: `true`)
+- `is_active` (opcional): `true` | `false` | `all` (default: `true`)
+  - `true` - Solo metas activas
+  - `false` - Solo metas archivadas
+  - `all` - Todas las metas (activas + archivadas)
 
 **Response (200):**
 ```json
@@ -1097,12 +1098,15 @@ Listar metas.
       "target_amount": 300000,
       "current_amount": 50000,
       "progress_percentage": 16.67,
-      "deadline": "2026-06-30"
+      "deadline": "2026-06-30",
+      "required_monthly_savings": 50000.00
     }
   ],
   "count": 1
 }
 ```
+
+**Note:** El campo `required_monthly_savings` se calcula automáticamente para cada meta y solo aparece si tiene deadline futuro.
 
 ---
 
@@ -1150,25 +1154,53 @@ Agregar fondos a meta.
 ```json
 {
   "amount": 30000,
-  "description": "Ahorro enero"
+  "description": "Ahorro enero",
+  "date": "2026-01-15"
 }
 ```
+
+**Validations:**
+- `amount` - Requerido, debe ser > 0
+- `date` - Requerido, formato YYYY-MM-DD
+  - No puede ser fecha futura
+  - No puede ser posterior al `deadline` de la meta (si existe)
+- `description` - Opcional
 
 **Response (200):**
 ```json
 {
   "message": "Fondos agregados exitosamente",
+  "savings_goal": {
+    "id": "uuid",
+    "name": "Vacaciones",
+    "current_amount": 80000.00,
+    "target_amount": 300000.00,
+    "progress_percentage": 26.67,
+    "updated_at": "2026-01-15T10:30:00Z"
+  },
   "transaction": {
     "id": "uuid",
-    "type": "add",
-    "amount": 30000
-  },
-  "new_current_amount": 80000.00
+    "amount": 30000,
+    "transaction_type": "deposit",
+    "description": "Ahorro enero",
+    "date": "2026-01-15",
+    "created_at": "2026-01-15T10:30:00Z"
+  }
+}
+```
+
+**Error (400) - Fecha posterior al deadline:**
+```json
+{
+  "error": "no puedes agregar fondos con una fecha posterior al deadline de la meta",
+  "transaction_date": "2026-07-15",
+  "goal_deadline": "2026-06-30"
 }
 ```
 
 **Effect:**
 - Actualiza `current_amount` automáticamente
+- Crea registro en `savings_goal_transactions`
 - Se cuenta en `total_assigned_to_goals` del dashboard
 
 ---
@@ -1183,9 +1215,17 @@ Retirar fondos de meta.
 ```json
 {
   "amount": 10000,
-  "description": "Adelanto para pasaje"
+  "description": "Adelanto para pasaje",
+  "date": "2026-01-18"
 }
 ```
+
+**Validations:**
+- `amount` - Requerido, debe ser > 0 y ≤ current_amount
+- `date` - Requerido, formato YYYY-MM-DD
+  - No puede ser fecha futura
+  - No puede ser posterior al `deadline` de la meta (si existe)
+- `description` - Opcional
 
 **Response (200):**
 ```json

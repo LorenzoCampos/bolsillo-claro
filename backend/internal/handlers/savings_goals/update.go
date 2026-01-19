@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // UpdateSavingsGoalRequest represents the request to update a savings goal
@@ -162,6 +163,17 @@ func UpdateSavingsGoal(db *pgxpool.Pool) gin.HandlerFunc {
 
 		goal.CreatedAt = createdAt.Format(time.RFC3339)
 		goal.UpdatedAt = updatedAt.Format(time.RFC3339)
+
+		// Obtener user_id del contexto para logging
+		userID, _ := middleware.GetUserID(c)
+
+		// Log de actualización exitosa
+		logger.Info("savings_goal.updated", "Meta de ahorro actualizada", map[string]interface{}{
+			"goal_id":    goalID,
+			"account_id": accountID,
+			"user_id":    userID,
+			"ip":         c.ClientIP(),
+		})
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":      "Meta de ahorro actualizada exitosamente",

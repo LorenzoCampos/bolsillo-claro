@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // CreateSavingsGoalRequest represents the request to create a savings goal
@@ -21,19 +22,55 @@ type CreateSavingsGoalRequest struct {
 
 // SavingsGoalResponse represents a savings goal
 type SavingsGoalResponse struct {
-	ID                 string  `json:"id"`
-	AccountID          string  `json:"account_id"`
-	Name               string  `json:"name"`
-	Description        *string `json:"description,omitempty"`
-	TargetAmount       float64 `json:"target_amount"`
-	CurrentAmount      float64 `json:"current_amount"`
-	Currency           string  `json:"currency"`
-	SavedIn            *string `json:"saved_in,omitempty"`
-	Deadline           *string `json:"deadline,omitempty"`
-	ProgressPercentage float64 `json:"progress_percentage"`
-	IsActive           bool    `json:"is_active"`
-	CreatedAt          string  `json:"created_at"`
-	UpdatedAt          string  `json:"updated_at"`
+	ID                     string   `json:"id"`
+	AccountID              string   `json:"account_id"`
+	Name                   string   `json:"name"`
+	Description            *string  `json:"description,omitempty"`
+	TargetAmount           float64  `json:"target_amount"`
+	CurrentAmount          float64  `json:"current_amount"`
+	Currency               string   `json:"currency"`
+	SavedIn                *string  `json:"saved_in,omitempty"`
+	Deadline               *string  `json:"deadline,omitempty"`
+	ProgressPercentage     float64  `json:"progress_percentage"`
+	RequiredMonthlySavings *float64 `json:"required_monthly_savings,omitempty"`
+	IsActive               bool     `json:"is_active"`
+	CreatedAt              string   `json:"created_at"`
+	UpdatedAt              string   `json:"updated_at"`
+}
+
+// calculateRequiredMonthlySavings calcula cuánto hay que ahorrar por mes para alcanzar la meta
+// Retorna nil si no hay deadline o si ya pasó la fecha
+func calculateRequiredMonthlySavings(currentAmount, targetAmount float64, deadline *time.Time) *float64 {
+	if deadline == nil {
+		return nil // Sin deadline no se puede calcular
+	}
+
+	now := time.Now()
+	if deadline.Before(now) {
+		return nil // Deadline ya pasó
+	}
+
+	// Calcular meses restantes
+	years := deadline.Year() - now.Year()
+	months := int(deadline.Month() - now.Month())
+	totalMonths := years*12 + months
+
+	// Si es el mismo mes o ya pasó, retornar nil
+	if totalMonths <= 0 {
+		return nil
+	}
+
+	// Calcular cuánto falta
+	amountRemaining := targetAmount - currentAmount
+	if amountRemaining <= 0 {
+		// Ya alcanzó la meta
+		zero := 0.0
+		return &zero
+	}
+
+	// Calcular cuánto hay que ahorrar por mes
+	requiredMonthly := amountRemaining / float64(totalMonths)
+	return &requiredMonthly
 }
 
 // CreateSavingsGoal handles POST /api/savings-goals
@@ -117,21 +154,39 @@ func CreateSavingsGoal(db *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
+		// Obtener user_id del contexto para logging
+		userID, _ := middleware.GetUserID(c)
+
+		// Log de creación exitosa
+		logger.Info("savings_goal.created", "Meta de ahorro creada", map[string]interface{}{
+			"goal_id":       goalID.String(),
+			"account_id":    accountID,
+			"user_id":       userID,
+			"name":          req.Name,
+			"target_amount": req.TargetAmount,
+			"deadline":      req.Deadline,
+			"ip":            c.ClientIP(),
+		})
+
+		// Calcular required_monthly_savings si hay deadline
+		requiredMonthlySavings := calculateRequiredMonthlySavings(0, req.TargetAmount, deadlineDate)
+
 		// Build response
 		response := SavingsGoalResponse{
-			ID:                 goalID.String(),
-			AccountID:          accountID,
-			Name:               req.Name,
-			Description:        req.Description,
-			TargetAmount:       req.TargetAmount,
-			CurrentAmount:      0,
-			Currency:           currency,
-			SavedIn:            req.SavedIn,
-			Deadline:           req.Deadline,
-			ProgressPercentage: 0,
-			IsActive:           true,
-			CreatedAt:          createdAt.Format(time.RFC3339),
-			UpdatedAt:          updatedAt.Format(time.RFC3339),
+			ID:                     goalID.String(),
+			AccountID:              accountID,
+			Name:                   req.Name,
+			Description:            req.Description,
+			TargetAmount:           req.TargetAmount,
+			CurrentAmount:          0,
+			Currency:               currency,
+			SavedIn:                req.SavedIn,
+			Deadline:               req.Deadline,
+			ProgressPercentage:     0,
+			RequiredMonthlySavings: requiredMonthlySavings,
+			IsActive:               true,
+			CreatedAt:              createdAt.Format(time.RFC3339),
+			UpdatedAt:              updatedAt.Format(time.RFC3339),
 		}
 
 		c.JSON(http.StatusCreated, gin.H{

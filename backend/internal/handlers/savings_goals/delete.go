@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // DeleteSavingsGoal handles DELETE /api/savings-goals/:id
@@ -67,6 +68,18 @@ func DeleteSavingsGoal(db *pgxpool.Pool) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "meta de ahorro no encontrada"})
 			return
 		}
+
+		// Obtener user_id del contexto para logging
+		userID, _ := middleware.GetUserID(c)
+
+		// Log de eliminación exitosa
+		logger.Info("savings_goal.deleted", "Meta de ahorro eliminada", map[string]interface{}{
+			"goal_id":    goalID,
+			"account_id": accountID,
+			"user_id":    userID,
+			"name":       name,
+			"ip":         c.ClientIP(),
+		})
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":         "Meta de ahorro eliminada exitosamente",

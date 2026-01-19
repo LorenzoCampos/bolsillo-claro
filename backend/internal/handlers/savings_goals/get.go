@@ -92,6 +92,9 @@ func GetSavingsGoal(db *pgxpool.Pool) gin.HandlerFunc {
 			goal.ProgressPercentage = 0
 		}
 
+		// Calculate required_monthly_savings si hay deadline
+		goal.RequiredMonthlySavings = calculateRequiredMonthlySavings(goal.CurrentAmount, goal.TargetAmount, deadline)
+
 		goal.CreatedAt = createdAt.Format(time.RFC3339)
 		goal.UpdatedAt = updatedAt.Format(time.RFC3339)
 
