@@ -1233,16 +1233,33 @@ Crear categoría custom.
 ```json
 {
   "id": "uuid",
+  "account_id": "uuid",
   "name": "Veterinario",
   "icon": "🐕",
   "color": "#FF5733",
-  "is_custom": true
+  "is_system": false,
+  "created_at": "2026-01-19T01:30:00Z"
 }
 ```
 
+**Response (409) - Duplicate name:**
+```json
+{
+  "error": "Ya existe una categoría con ese nombre en esta cuenta"
+}
+```
+
+**Validation Rules:**
+- `name`: Required, must be unique per account (case-insensitive)
+  - "Alimentación" and "alimentación" are considered duplicates
+  - "Alimentación" in Account A can exist alongside "Alimentación" in Account B
+- `icon`: Required, emoji character
+- `color`: Required, hex color code (e.g., "#FF5733")
+
 **Restrictions:**
-- No se pueden editar/borrar predefinidas
-- No se pueden borrar custom con expenses asociados
+- No se pueden editar/borrar categorías del sistema (is_system = true)
+- No se pueden borrar categorías custom con gastos asociados
+- Nombres únicos por cuenta (sin importar mayúsculas/minúsculas)
 
 ---
 
@@ -1266,7 +1283,42 @@ Listar categorías de ingresos.
 
 ### POST /income-categories
 
-Crear categoría custom de ingresos (misma estructura que expense-categories).
+Crear categoría custom de ingresos.
+
+**Headers:** `Authorization`, `X-Account-ID`
+
+**Request:**
+```json
+{
+  "name": "Bonus Anual",
+  "icon": "💎",
+  "color": "#4CAF50"
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": "uuid",
+  "account_id": "uuid",
+  "name": "Bonus Anual",
+  "icon": "💎",
+  "color": "#4CAF50",
+  "is_system": false,
+  "created_at": "2026-01-19T01:30:00Z"
+}
+```
+
+**Response (409) - Duplicate name:**
+```json
+{
+  "error": "Ya existe una categoría con ese nombre en esta cuenta"
+}
+```
+
+**Validation Rules:**
+- Same as expense-categories (unique name per account, case-insensitive)
+- Icons and colors should reflect income context
 
 ---
 
@@ -1299,7 +1351,9 @@ Todas las respuestas de error siguen este formato:
 | `account_id not found in context` | Falta header `X-Account-ID` | Agregar header |
 | `Usuario no autenticado` | Token JWT inválido/faltante | Verificar Authorization |
 | `Datos inválidos` | Campo requerido faltante o formato incorrecto | Validar payload |
-| `El email ya está registrado` | Email duplicado | Usar otro email o login |
+| `El email ya está registrado` | Email duplicado en registro | Usar otro email o login |
+| `Ya existe una cuenta con ese nombre` | Nombre de cuenta duplicado (case-insensitive) | Usar otro nombre de cuenta |
+| `Ya existe una categoría con ese nombre en esta cuenta` | Nombre de categoría duplicado en la misma cuenta (case-insensitive) | Usar otro nombre de categoría |
 
 ---
 

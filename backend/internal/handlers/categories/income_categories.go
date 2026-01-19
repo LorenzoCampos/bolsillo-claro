@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -124,6 +125,16 @@ func CreateIncomeCategory(db *pgxpool.Pool) gin.HandlerFunc {
 		)
 
 		if err != nil {
+			// Detectar violación de constraint UNIQUE para nombres duplicados (case-insensitive)
+			if pgErr, ok := err.(*pgconn.PgError); ok {
+				if pgErr.Code == "23505" && pgErr.ConstraintName == "idx_income_categories_unique_name_per_account" {
+					c.JSON(http.StatusConflict, gin.H{
+						"error": "Ya existe una categoría con ese nombre en esta cuenta",
+					})
+					return
+				}
+			}
+
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create category: " + err.Error()})
 			return
 		}
