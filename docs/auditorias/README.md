@@ -27,7 +27,7 @@ Se recomienda crear nuevas auditorías:
 
 📊 **[VER RESUMEN EJECUTIVO COMPLETO](./2026-01-17_SUMMARY.md)** ← Lee esto primero
 
-**Estado general:** 7 módulos auditados | **Score promedio:** 10.0/10 🏆 | **Status:** Production ready ✅
+**Estado general:** 7 módulos auditados | **Score promedio:** 10.0/10 🏆 | **Status:** Production ready ✅ (actualizado 2026-01-20)
 
 - [AUTH](./2026-01-17_AUTH.md) - Autenticación (10.0/10) ✅ ⭐⭐⭐ **PERFECTO 2026-01-18**
 - [ACCOUNTS](./2026-01-17_ACCOUNTS.md) - Gestión de cuentas (10.0/10) ✅ ⭐⭐⭐ **PERFECTO 2026-01-18**
@@ -46,17 +46,27 @@ Se recomienda crear nuevas auditorías:
    - **Fix:** Remover `is_general` del INSERT query
    - **Prioridad:** 🔴 URGENTE - Bloquea feature core
 
-2. ✅ **Multi-Currency EUR Bug - CORREGIDO 2026-01-20** (afecta ACCOUNTS, EXPENSES, INCOMES)
-   - **Problema:** Handlers validan `EUR` como moneda permitida, pero DB ENUM solo tiene `ARS, USD`
-   - **Impacto:** Seleccionar EUR retorna error 500
-   - **Fix Aplicado:** Migración 017 agregó EUR al ENUM currency ✅
-   - **Estado:** ✅ CORREGIDO y testeado en producción
+2. ✅ **Multi-Currency EUR Bug - CORREGIDO 2026-01-20** (afecta ACCOUNTS, EXPENSES, INCOMES, RECURRING_*)
+   - **Problema:** Handlers validaban `EUR` como moneda permitida, pero DB ENUM solo tenía `ARS, USD`
+   - **Impacto:** Seleccionar EUR retornaba error 500
+   - **Fix Aplicado:** 
+     - Migración 017 agregó EUR al ENUM ✅
+     - 7 handlers actualizados (accounts, incomes, recurring_*) ✅
+     - Commit ffaa483 (2026-01-20)
+   - **Testing:** POST con EUR en accounts/incomes/recurring_expenses → HTTP 201 ✅
+   - **Estado:** ✅ RESUELTO COMPLETAMENTE
 
-3. ✅ **Recurrence System Mismatch - DOCUMENTACIÓN CORREGIDA 2026-01-20** (afecta EXPENSES, INCOMES)
-   - **Problema:** FEATURES.md documenta sistema avanzado de recurrencia como si estuviera en tabla `expenses`
-   - **Impacto:** Documentación confusa sobre arquitectura real (recurring_expenses vs expenses)
-   - **Fix Aplicado:** FEATURES.md actualizado aclarando patrón de plantillas (recurring_expenses separado) ✅
-   - **Estado:** ✅ DOCUMENTACIÓN CORREGIDA
+3. ✅ **Recurrence System Mismatch - IMPLEMENTADO + DOCUMENTADO 2026-01-18/20** (afecta EXPENSES, INCOMES)
+   - **Problema Original:** FEATURES.md documentaba sistema avanzado pero código solo tenía `date + end_date` básico
+   - **Impacto:** Promesa de features no implementadas
+   - **Fix Aplicado:** 
+     - Sistema recurrencia COMPLETO implementado (2026-01-18)
+     - Migración 013 (recurring_expenses) + 014 (recurring_incomes) ✅
+     - 10 handlers CRUD (/recurring-expenses, /recurring-incomes) ✅
+     - CRON scheduler funcional (generación automática daily) ✅
+     - FEATURES.md corregido aclarando patrón de plantillas (2026-01-20) ✅
+     - 16/16 tests pasados ✅
+   - **Estado:** ✅ IMPLEMENTADO AL 100% + DOCUMENTADO
 
 #### ✅ Highlights Positivos
 
