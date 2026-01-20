@@ -1,168 +1,137 @@
 # Changelog - Bolsillo Claro
 
-## [MVP v1.0] - En Desarrollo
+Todos los cambios notables del proyecto se documentan en este archivo.
 
-### Decisiones de Arquitectura y Cambios
-
-#### 2026-01-13 - Definición MVP Final
-
-**Decisiones tomadas:**
-1. **Wishlist removida del MVP** - Se pospone para v1.1
-2. **Multi-currency con snapshot histórico** - Implementación semi-automática
-3. **Exchange rates manuales/semi-automáticos** - Admin carga 1 vez por día
-4. **Savings Goals integradas en balance** - Descuento virtual (no crea expenses reales)
-5. **Onboarding de primera cuenta** - Manejado por frontend, backend provee `has_accounts` flag
-
-**Alcance MVP v1.0:**
-- ✅ Autenticación (JWT)
-- ✅ Cuentas (CRUD completo)
-- ✅ Gastos (CRUD + filtros + multi-currency)
-- ✅ Ingresos (CRUD + filtros + multi-currency)
-- ✅ Categorías (predefinidas + custom)
-- ⏳ Dashboard básico (balance, gastos por categoría, top gastos)
-- ⏳ Exchange Rates (manual/semi-automático)
-- ⏳ Savings Goals (CRUD + add/withdraw funds)
-
-**Pospuesto para v1.1:**
-- ❌ Wishlist vinculada a metas
-- ❌ Dashboard con tendencias (6 meses)
-- ❌ API externa de exchange rates
-- ❌ Account settings (theme, language)
-- ❌ Notificaciones
-- ❌ Budgets (presupuestos)
-- ❌ Exports (CSV/Excel)
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
+y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
-## [Fase 3] - 2026-01-13 - Categorías Completadas
+## [Unreleased]
 
-### Implementado
-- ✅ Tabla `expense_categories` (15 predefinidas + custom por cuenta)
-- ✅ Tabla `income_categories` (10 predefinidas + custom por cuenta)
-- ✅ CRUD completo de categorías custom
-- ✅ Migración de expenses/incomes: columna `category` TEXT → `category_id` UUID
-- ✅ Datos existentes migrados con JOIN a categorías predefinidas
-- ✅ Responses incluyen `category_id` + `category_name` para facilitar frontend
-
-### Categorías Predefinidas
-
-**Expense Categories (15):**
-1. Alimentación 🍔 #FF6B6B
-2. Transporte 🚗 #4ECDC4
-3. Salud ⚕️ #95E1D3
-4. Entretenimiento 🎮 #F38181
-5. Educación 📚 #AA96DA
-6. Hogar 🏠 #FCBAD3
-7. Servicios 💡 #A8D8EA
-8. Ropa 👕 #FFCCBC
-9. Mascotas 🐶 #C5E1A5
-10. Tecnología 💻 #90CAF9
-11. Viajes ✈️ #FFAB91
-12. Regalos 🎁 #F48FB1
-13. Impuestos 🧾 #BCAAA4
-14. Seguros 🛡️ #B39DDB
-15. Otro 📦 #B0BEC5
-
-**Income Categories (10):**
-1. Salario 💼 #66BB6A
-2. Freelance 💻 #42A5F5
-3. Inversiones 📈 #AB47BC
-4. Negocio 🏢 #FFA726
-5. Alquiler 🏘️ #26C6DA
-6. Regalo 🎁 #EC407A
-7. Venta 🏷️ #78909C
-8. Intereses 💰 #9CCC65
-9. Reembolso ↩️ #7E57C2
-10. Otro 💵 #8D6E63
-
-### Decisiones Técnicas
-- Categorías system tienen `account_id = NULL` e `is_system = TRUE`
-- Categorías custom tienen `account_id = <uuid>` e `is_system = FALSE`
-- No se pueden editar/borrar categorías system
-- No se pueden borrar categorías custom que tengan expenses/incomes asociados
-- Unique constraint: nombre único por scope (global para system, por cuenta para custom)
+### En Desarrollo
+- Sistema de recurrencia avanzado (frecuencias, día específico del mes/semana, límite de ocurrencias)
+- Dashboard con tendencias de 6 meses
+- Exports (CSV/Excel)
+- Budgets (presupuestos mensuales por categoría)
 
 ---
 
-## [Fase 2] - 2026-01-13 - CRUD Expenses Completado
+## [1.0.0] - 2026-01-16
 
-### Implementado
-- ✅ POST /api/expenses (crear one-time o recurring)
-- ✅ GET /api/expenses (listar con filtros: fecha, tipo, categoría, miembro, paginación)
-- ✅ GET /api/expenses/:id (detalle individual)
-- ✅ PUT /api/expenses/:id (actualización parcial)
-- ✅ DELETE /api/expenses/:id (eliminación)
+### 🎉 MVP Release
 
-### Validaciones
-- Expense type: `one-time` no puede tener `end_date`, `recurring` puede tenerlo (opcional)
-- Fechas: formato YYYY-MM-DD, end_date >= date
-- Family members: validación de que pertenezcan a la cuenta
-- Ownership: solo puedes ver/modificar tus propios gastos
+Primera versión completa y funcional del sistema.
 
----
+### Added - Backend
+- ✅ Sistema de autenticación JWT (access + refresh tokens)
+- ✅ CRUD completo de Accounts (personal + family)
+- ✅ CRUD completo de Expenses (one-time + recurring básico)
+- ✅ CRUD completo de Incomes (one-time + recurring básico)
+- ✅ CRUD completo de Savings Goals con transacciones
+- ✅ Sistema de categorías (predefinidas + custom)
+- ✅ Family members para cuentas familiares
+- ✅ Dashboard con resumen mensual consolidado
+- ✅ Multi-currency con Modo 3 (captura dólar tarjeta)
+- ✅ Tabla exchange_rates para histórico de tipos de cambio
+- ✅ Middleware de autenticación y account context
+- ✅ 11 migraciones SQL completas
 
-## [Fase 2] - 2026-01-13 - CRUD Incomes Completado
+### Added - Frontend
+- ✅ Setup con Vite + React 18 + TypeScript
+- ✅ TailwindCSS v4 configurado
+- ✅ TanStack Query para data fetching
+- ✅ React Hook Form + Zod para validación
+- ✅ Axios con interceptors (JWT + X-Account-ID)
+- ✅ React Router v6 para navegación
+- ✅ Páginas principales: Login, Dashboard, Expenses, Incomes, Savings Goals
 
-### Implementado
-- ✅ POST /api/incomes (crear one-time o recurring)
-- ✅ GET /api/incomes (listar con filtros idénticos a expenses)
-- ✅ GET /api/incomes/:id (detalle individual)
-- ✅ PUT /api/incomes/:id (actualización parcial)
-- ✅ DELETE /api/incomes/:id (eliminación)
-
-### Estructura idéntica a Expenses
-- Misma lógica de tipos (one-time/recurring)
-- Misma lógica de end_date opcional
-- Mismos filtros y paginación
-
----
-
-## [Fase 1] - 2026-01-13 - Foundation
-
-### Implementado
-- ✅ Autenticación con JWT (access + refresh tokens)
-- ✅ Bcrypt para passwords (cost factor 12)
-- ✅ Cuentas: POST /api/accounts (personal + family)
-- ✅ Cuentas: GET /api/accounts (listar)
-- ✅ Middleware: AuthMiddleware (JWT validation)
-- ✅ Middleware: AccountMiddleware (X-Account-ID validation)
-
-### Base de Datos
-- ✅ users (id, email, password_hash)
-- ✅ accounts (id, user_id, name, account_type, currency)
-- ✅ family_members (id, account_id, name, role)
-- ✅ savings_goals (id, account_id, name, target_amount, current_amount)
-- ✅ expenses (id, account_id, family_member_id, category_id, description, amount, currency, expense_type, date, end_date)
-- ✅ incomes (id, account_id, family_member_id, category_id, description, amount, currency, income_type, date, end_date)
-- ✅ expense_categories (id, account_id, name, icon, color, is_system)
-- ✅ income_categories (id, account_id, name, icon, color, is_system)
-
-### Decisiones de Arquitectura
-- **Users vs Accounts:** Separados para permitir múltiples contextos financieros por usuario
-- **Account Types:** `personal` (individual) y `family` (con múltiples miembros)
-- **Family Members:** Solo existen para cuentas tipo `family`, permiten asignar gastos/ingresos a personas específicas
-- **Currency:** Enum con ARS, USD, EUR (extensible)
-- **Expense/Income Types:** `one-time` (gasto único) y `recurring` (recurrente como suscripciones)
+### Added - Documentación
+- ✅ FEATURES.md - Guía narrativa de funcionalidades
+- ✅ API.md - Especificación completa de endpoints
+- ✅ STACK.md - Stack tecnológico y decisiones
+- ✅ docs/DATABASE.md - Schema de base de datos
+- ✅ docs/MULTI-CURRENCY.md - Sistema multi-moneda
+- ✅ README.md consolidado
 
 ---
 
-## Roadmap
+## [0.3.0] - 2026-01-13
 
-### v1.0 MVP (En curso - ~7-11 horas restantes)
-1. ⏳ CRUD completo de Accounts
-2. ⏳ Multi-currency con snapshot histórico
-3. ⏳ Dashboard básico
-4. ⏳ Savings Goals CRUD
+### Added
+- Sistema de categorías predefinidas (15 expense + 10 income)
+- Categorías custom por cuenta
+- Migración de campo `category` TEXT a `category_id` UUID
+- Endpoints de categorías con CRUD completo
 
-### v1.1 (Futuro)
+### Changed
+- Expenses e Incomes ahora usan `category_id` en lugar de `category` texto
+
+---
+
+## [0.2.0] - 2026-01-12
+
+### Added
+- Sistema multi-currency con snapshot histórico
+- Campos `exchange_rate` y `amount_in_primary_currency`
+- Tabla `exchange_rates` para histórico de tasas
+- Modo 3: Flexibilidad total (ingreso de monto real pagado)
+- Savings Goals con tabla de transacciones
+- Endpoints para add/withdraw funds
+
+### Changed
+- Dashboard ahora muestra `available_balance` calculado
+- Todos los montos se convierten a moneda primaria de la cuenta
+
+---
+
+## [0.1.0] - 2026-01-10
+
+### Added - Foundation
+- Estructura inicial del proyecto (backend Go + frontend React)
+- Autenticación con JWT y bcrypt
+- CRUD básico de Accounts
+- CRUD básico de Expenses (sin multi-currency)
+- CRUD básico de Incomes (sin multi-currency)
+- Setup de PostgreSQL con migraciones iniciales
+- Dockerfile para deployment
+- Configuración de Apache como reverse proxy
+
+### Deployment
+- Producción: https://api.fakerbostero.online/bolsillo
+- VPS Debian 12 configurado
+
+---
+
+## 📝 Notas de Versiones
+
+### Sobre el MVP v1.0
+
+Esta versión incluye todas las funcionalidades core necesarias para gestionar finanzas personales y familiares:
+- Tracking completo de gastos e ingresos
+- Soporte multi-moneda real (captura impuestos argentinos)
+- Metas de ahorro con cálculo automático
+- Dashboard con análisis por categoría
+- Cuentas familiares con atribución por miembro
+
+**Lo que NO incluye (planeado para v1.1+):**
+- Recurrencia avanzada (día específico del mes/semana, cuotas con contador)
 - Wishlist vinculada a metas
-- Dashboard con tendencias
-- API externa de exchange rates
-- Account settings
-
-### v2.0 (Futuro lejano)
-- Budgets (presupuestos)
+- Tendencias históricas (6+ meses)
+- Budgets/presupuestos
 - Notificaciones
 - Exports
-- Reports avanzados
-- Mobile app
+
+---
+
+## 🔗 Links
+
+- [Repositorio GitHub](https://github.com/LorenzoCampos/bolsillo-claro)
+- [API Producción](https://api.fakerbostero.online/bolsillo)
+- [Documentación API](./API.md)
+- [Guía de Features](./FEATURES.md)
+
+---
+
+**Mantenido por:** Gentleman Programming & Lorenzo  
+**Última actualización:** 2026-01-16

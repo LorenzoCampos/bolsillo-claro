@@ -1,156 +1,173 @@
 # 📚 Stack Tecnológico - Bolsillo Claro
 
-## 🎯 Visión General
-
 Aplicación web full-stack para gestión financiera personal/familiar con soporte multi-moneda.
 
 ---
 
-## 🔧 Backend (Completado ✅)
+## 🔧 Backend
 
 ### Core
-- **Lenguaje:** Go 1.23
-- **Framework Web:** Gin (HTTP router y middleware)
-- **Base de Datos:** PostgreSQL 15
-- **Driver DB:** pgx/v5 (conexión pool nativa)
-- **Autenticación:** JWT (access + refresh tokens)
-- **Password Hashing:** bcrypt
+- **Go 1.23** - Lenguaje principal
+- **Gin** - Framework HTTP (routing, middleware)
+- **PostgreSQL 15** - Base de datos relacional
+- **pgx/v5** - Driver PostgreSQL nativo con connection pooling
+- **JWT** - Autenticación (access 15min + refresh 7d)
+- **bcrypt** - Hashing de contraseñas (cost factor 12)
+
+**¿Por qué Go?**
+- Rendimiento superior (compilado, concurrente)
+- Tipado fuerte reduce bugs
+- Binary único simplifica deployment
+- Ecosistema maduro para APIs REST
+
+**¿Por qué Gin?**
+- Framework minimalista pero completo
+- Excelente performance (basado en httprouter)
+- Middleware system flexible
+- Documentación clara
+
+**¿Por qué PostgreSQL?**
+- Transacciones ACID críticas para finanzas
+- Soporte JSON, Arrays, ENUMs
+- Queries complejas para analytics
+- Robustez probada
 
 ### Dependencias Principales
+
 ```go
 github.com/gin-gonic/gin v1.11.0           // Web framework
-github.com/jackc/pgx/v5 v5.7.0             // PostgreSQL driver (compatible Go 1.23)
+github.com/jackc/pgx/v5 v5.7.0             // PostgreSQL driver
 github.com/golang-jwt/jwt/v5 v5.3.0        // JWT tokens
-github.com/joho/godotenv v1.5.1            // Variables de entorno
+github.com/joho/godotenv v1.5.1            // .env loader
 golang.org/x/crypto v0.40.0                // bcrypt
 github.com/google/uuid v1.6.0              // UUIDs
 ```
 
 ### Deployment
-- **Containerización:** Docker (multi-stage build)
-- **Imagen Base:** golang:1.23-alpine (build) + alpine:latest (runtime)
-- **Tamaño Imagen:** ~80MB (optimizada)
-- **Reverse Proxy:** Apache 2.4.66
-- **SSL:** Let's Encrypt (certbot)
-- **URL Producción:** https://api.fakerbostero.online/bolsillo
 
-### Infraestructura
+- **Docker:** Multi-stage build (golang:1.23-alpine → alpine:latest)
+- **Tamaño imagen:** ~80MB optimizada
+- **Reverse Proxy:** Apache 2.4.66 con SSL (Let's Encrypt)
 - **VPS:** Debian 12
-- **PostgreSQL:** Compartido con otros proyectos
-- **Docker Network:** Bridge (host.docker.internal para DB)
-- **Puerto Interno:** 8080
-- **Logs:** Docker logs + Apache logs
+- **URL Producción:** https://api.fakerbostero.online/bolsillo
+- **Puerto interno:** 8080
+- **DB:** PostgreSQL compartida (host.docker.internal)
 
 ---
 
-## ⚛️ Frontend (En Desarrollo 🚧)
+## ⚛️ Frontend
 
 ### Core Stack
 
-#### Build Tool & Framework
-- **Build Tool:** Vite 6.x (última versión)
-  - **¿Por qué?** Super rápido (10x más que Webpack), HMR instantáneo, configuración mínima
-  - **Alternativas descartadas:** 
-    - Create React App (obsoleto, no mantenido)
-    - Webpack directo (configuración compleja)
+- **React 18** - UI library
+- **Vite 6** - Build tool & dev server
+- **TypeScript 5** - Tipado estático
+- **pnpm** - Package manager
 
-- **Framework:** React 18
-  - **¿Por qué?** El estándar de la industria, ecosistema gigante
-  - **Alternativas descartadas:**
-    - Next.js (overkill, no necesitamos SSR para app privada)
-    - Vue/Angular (menos demanda laboral)
+**¿Por qué React?**
+- Estándar de la industria
+- Ecosistema gigante
+- Demand laboral alta
 
-- **Lenguaje:** TypeScript 5.x
-  - **¿Por qué?** Previene bugs, autocompletado increíble, estándar de la industria
-  - **Trade-off:** Curva de aprendizaje inicial (pero vale la pena)
+**¿Por qué NO Next.js?**
+- No necesitamos SSR (app privada sin SEO)
+- Vite es más simple y rápido para desarrollo
+- Menor complejidad de setup
 
----
+**¿Por qué TypeScript?**
+- Previene ~30% de bugs en runtime
+- Autocompletado increíble (DX)
+- Refactoring seguro
+- Estándar en empresas serias
+
+**¿Por qué Vite?**
+- 10x más rápido que Webpack
+- HMR instantáneo (<50ms)
+- Configuración mínima
+- ESM nativo
 
 ### Librerías Principales
 
-#### 1. React Router v6
+#### React Router v7
 ```bash
-npm install react-router-dom
+pnpm add react-router-dom
 ```
-**Propósito:** Navegación entre páginas (SPA)
-**¿Por qué?**
-- Estándar de facto para routing en React
-- Soporte para rutas protegidas (requieren autenticación)
-- Navegación programática
-- URL params, query strings, etc.
+**Uso:** Navegación SPA con rutas protegidas
 
-**Rutas planeadas:**
-- `/` - Landing/Home
-- `/login` - Login
-- `/register` - Registro
+**Rutas:**
+- `/` - Landing
+- `/login`, `/register` - Auth
 - `/dashboard` - Dashboard principal (protegida)
-- `/expenses` - Lista de gastos (protegida)
-- `/incomes` - Lista de ingresos (protegida)
-- `/savings-goals` - Metas de ahorro (protegida)
+- `/expenses`, `/incomes` - Listas (protegidas)
+- `/savings-goals` - Metas (protegida)
 - `/accounts` - Gestión de cuentas (protegida)
 
 ---
 
-#### 2. TanStack Query v5 (ex React Query)
+#### TanStack Query v5
 ```bash
-npm install @tanstack/react-query @tanstack/react-query-devtools
+pnpm add @tanstack/react-query
 ```
-**Propósito:** Data fetching, caching, sincronización con servidor
-**¿Por qué?**
-- ✅ Caching automático (no re-fetches innecesarios)
-- ✅ Optimistic updates (UI instantánea)
-- ✅ Auto-refetch cuando volvés a la tab
-- ✅ Invalidación inteligente de cache
-- ✅ Menos código boilerplate
+**Uso:** Data fetching, caching, sincronización con servidor
 
-**Ejemplo de uso:**
-```tsx
-// Sin TanStack Query: ~30 líneas de código
-// Con TanStack Query: ~5 líneas
-const { data, isLoading, error } = useQuery({
-  queryKey: ['expenses', accountId],
-  queryFn: () => api.getExpenses(accountId)
-});
-```
+**¿Por qué NO useState + useEffect?**
+- ✅ Caching automático (evita re-fetches)
+- ✅ Optimistic updates (UI instantánea)
+- ✅ Auto-refetch al volver a la tab
+- ✅ Invalidación inteligente de cache
+- ✅ Evita 100+ líneas de boilerplate por feature
 
 **Configuración:**
-- staleTime: 5 minutos (datos frescos por 5min)
-- cacheTime: 30 minutos (cache persiste 30min)
-- retry: 3 intentos
-- refetchOnWindowFocus: true (recarga al volver a la tab)
+```tsx
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,      // 5min fresh
+      cacheTime: 30 * 60 * 1000,     // 30min cache
+      retry: 3,
+      refetchOnWindowFocus: true,
+    },
+  },
+});
+```
 
 ---
 
-#### 3. Axios
+#### Axios
 ```bash
-npm install axios
+pnpm add axios
 ```
-**Propósito:** Cliente HTTP para llamadas a la API
-**¿Por qué NO fetch nativo?**
-- ✅ Interceptors (agregar token JWT automático en cada request)
-- ✅ Auto-throw en errores 4xx/5xx (fetch no lo hace)
-- ✅ Transformación automática de JSON
-- ✅ Timeout built-in
-- ✅ Upload progress
+**Uso:** Cliente HTTP con interceptors
 
-**Configuración planeada:**
+**¿Por qué NO fetch?**
+- ✅ Interceptors (JWT automático, refresh token)
+- ✅ Auto-throw en 4xx/5xx
+- ✅ Transformación JSON automática
+- ✅ Timeout built-in
+
+**Setup:**
 ```tsx
-// Interceptor para agregar JWT automáticamente
+// Interceptor para JWT
 axios.interceptors.request.use(config => {
   const token = localStorage.getItem('accessToken');
+  const accountId = localStorage.getItem('activeAccountId');
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (accountId) {
+    config.headers['X-Account-ID'] = accountId;
+  }
+  
   return config;
 });
 
-// Interceptor para refresh token automático en 401
+// Interceptor para refresh token
 axios.interceptors.response.use(
   response => response,
   async error => {
     if (error.response?.status === 401) {
-      // Intentar refresh token
-      // Si falla, redirect a /login
+      // Intentar refresh, si falla → logout
     }
     return Promise.reject(error);
   }
@@ -159,174 +176,167 @@ axios.interceptors.response.use(
 
 ---
 
-#### 4. React Hook Form v7
+#### React Hook Form + Zod
 ```bash
-npm install react-hook-form
+pnpm add react-hook-form zod @hookform/resolvers
 ```
-**Propósito:** Manejo de formularios
-**¿Por qué?**
-- ✅ Performance: NO re-renderiza todo el form en cada tecla
-- ✅ Menos código boilerplate
-- ✅ Validaciones declarativas
-- ✅ Se integra perfecto con Zod
+**Uso:** Formularios con validación
 
-**Formularios en el proyecto:**
-- Login (email, password)
-- Registro (email, password, name)
-- Crear gasto (amount, description, category, date, currency)
-- Crear ingreso (amount, description, category, date, currency)
-- Crear meta de ahorro (name, target_amount, deadline, saved_in)
-- Agregar/retirar fondos (amount, description)
+**¿Por qué React Hook Form?**
+- ✅ NO re-renderiza en cada tecla (performance)
+- ✅ Menos código vs formularios manuales
+- ✅ Integración perfecta con Zod
 
----
-
-#### 5. Zod v3
-```bash
-npm install zod
-```
-**Propósito:** Validación de datos con TypeScript
-**¿Por qué?**
-- ✅ Validación de datos del backend (type-safety)
-- ✅ Validación de formularios (integración con React Hook Form)
+**¿Por qué Zod?**
+- ✅ Validación + inferencia de tipos TypeScript
 - ✅ Mensajes de error claros
-- ✅ Inferencia de tipos TypeScript automática
+- ✅ Valida data del backend también
 
-**Schemas planeados:**
+**Ejemplo:**
 ```tsx
-// Usuario
-const UserSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
-  name: z.string().min(1),
-});
-
-// Expense
 const ExpenseSchema = z.object({
-  id: z.string().uuid(),
-  account_id: z.string().uuid(),
   amount: z.number().positive(),
   currency: z.enum(['ARS', 'USD', 'EUR']),
-  description: z.string(),
-  date: z.string().datetime(),
+  description: z.string().min(1).max(500),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   category_id: z.string().uuid().optional(),
+});
+
+type ExpenseForm = z.infer<typeof ExpenseSchema>;
+
+const { register, handleSubmit } = useForm<ExpenseForm>({
+  resolver: zodResolver(ExpenseSchema),
 });
 ```
 
 ---
 
-#### 6. Tailwind CSS v4 (Beta)
+#### Tailwind CSS v4
 ```bash
-npm install tailwindcss@next
+pnpm add tailwindcss@next @tailwindcss/vite
 ```
-**Propósito:** Styling con utility classes
-**¿Por qué Tailwind v4 beta?**
-- ✅ Zero-config (NO necesita tailwind.config.js)
-- ✅ Más rápido (nueva engine en Rust)
-- ✅ Menos boilerplate
-- ✅ Ya estable para producción
+**Uso:** Styling con utility classes
 
-**¿Por qué Tailwind en general?**
-- ✅ Desarrollo rápido (no pensás nombres de clases)
+**¿Por qué Tailwind?**
+- ✅ Desarrollo 3x más rápido (no pensás nombres de clases)
 - ✅ Bundle pequeño (purga clases no usadas)
-- ✅ Responsive design fácil
-- ✅ Dark mode built-in
+- ✅ Responsive trivial (`md:`, `lg:`)
+- ✅ Dark mode built-in (`dark:`)
 - ✅ Estándar de la industria
 
+**¿Por qué v4 beta?**
+- ✅ Zero-config (no necesita `tailwind.config.js`)
+- ✅ Engine en Rust (más rápido)
+- ✅ Ya estable para producción
+
 **Alternativas descartadas:**
-- CSS Modules (más verboso)
-- Styled Components (runtime overhead)
-- SCSS/SASS (compilación extra)
+- CSS Modules: Más verboso, naming decisions
+- Styled Components: Runtime overhead
+- SCSS/SASS: Compilación extra innecesaria
 
 ---
 
 ### Dependencias de Desarrollo
 
 ```bash
-npm install -D @types/react @types/react-dom typescript
-npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
-npm install -D prettier eslint-config-prettier
+pnpm add -D typescript @types/react @types/react-dom
+pnpm add -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
+pnpm add -D prettier eslint-config-prettier
 ```
-
-**Propósito:**
-- TypeScript types para React
-- Linting (ESLint)
-- Formatting (Prettier)
 
 ---
 
 ## 🏗️ Arquitectura Frontend
 
 ### Estructura de Carpetas
+
 ```
-frontend/
-├── src/
-│   ├── components/        # Componentes reutilizables
-│   │   ├── ui/           # Componentes básicos (Button, Input, Card)
-│   │   └── layout/       # Layout components (Header, Sidebar, Footer)
-│   ├── pages/            # Páginas (una por ruta)
-│   │   ├── Login.tsx
-│   │   ├── Dashboard.tsx
-│   │   ├── Expenses.tsx
-│   │   └── ...
-│   ├── hooks/            # Custom hooks
-│   │   ├── useAuth.ts
-│   │   ├── useExpenses.ts
-│   │   └── ...
-│   ├── services/         # API calls (Axios)
-│   │   ├── api.ts        # Axios instance
-│   │   ├── auth.ts       # Auth endpoints
-│   │   ├── expenses.ts   # Expenses endpoints
-│   │   └── ...
-│   ├── types/            # TypeScript types y Zod schemas
-│   │   ├── user.ts
-│   │   ├── expense.ts
-│   │   └── ...
-│   ├── context/          # React Context (Auth, Theme)
-│   │   └── AuthContext.tsx
-│   ├── utils/            # Funciones helpers
-│   │   ├── formatCurrency.ts
-│   │   ├── formatDate.ts
-│   │   └── ...
-│   ├── App.tsx           # Componente principal
-│   └── main.tsx          # Entry point
-├── public/               # Assets estáticos
-├── index.html
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
+frontend/src/
+├── pages/              # Páginas (una por ruta)
+├── components/         # Componentes reutilizables
+│   ├── ui/            # Componentes base (Button, Input, Card)
+│   └── layout/        # Layout (Header, Sidebar, Footer)
+├── services/          # API calls (Axios)
+├── hooks/             # Custom hooks
+├── types/             # TypeScript types + Zod schemas
+├── utils/             # Helpers (formatCurrency, formatDate)
+└── App.tsx
+```
+
+### Patrones
+
+**Container/Presentational:**
+- Container: Lógica + data fetching
+- Presentational: Solo UI, recibe props
+
+**Custom Hooks:**
+Encapsulan lógica reutilizable
+- `useAuth()` - Login, logout, user state
+- `useExpenses()` - CRUD de gastos
+- `useAccounts()` - CRUD de cuentas
+- `useDebounce()` - Debounce para inputs
+
+**Atomic Design (UI components):**
+- Atoms: Button, Input, Label
+- Molecules: FormField (Label + Input + Error)
+- Organisms: LoginForm, ExpenseForm
+
+---
+
+## 🗄️ Base de Datos
+
+### Schema Overview
+
+**Tablas principales:**
+- `users` - Usuarios del sistema
+- `accounts` - Cuentas (personal/family)
+- `family_members` - Miembros de cuentas family
+- `expenses` - Gastos (one-time/recurring)
+- `incomes` - Ingresos (one-time/recurring)
+- `expense_categories` - Categorías de gastos
+- `income_categories` - Categorías de ingresos
+- `savings_goals` - Metas de ahorro
+- `savings_goal_transactions` - Movimientos de metas
+- `exchange_rates` - Histórico de tipos de cambio
+
+**Ver schema completo:** [docs/DATABASE.md](./docs/DATABASE.md)
+
+### Migraciones
+
+11 migraciones SQL en orden secuencial:
+1. `001_create_users_table.sql`
+2. `002_create_accounts_table.sql`
+3. `003_create_savings_goals_table.sql`
+4. `004_create_family_members_table.sql`
+5. `005_create_expenses_table.sql`
+6. `006_create_incomes_table.sql`
+7. `007_create_categories_tables.sql`
+8. `008_seed_default_categories.sql`
+9. `009_add_category_id_to_expenses_incomes.sql`
+10. `010_add_multi_currency_support.sql`
+11. `011_update_savings_goals_and_create_transactions.sql`
+
+**Ejecutar en orden:**
+```bash
+for f in backend/migrations/*.sql; do
+  psql -U postgres -d bolsillo_claro -f "$f"
+done
 ```
 
 ---
 
-### Patrones de Diseño
+## 🔐 Autenticación
 
-#### 1. Container/Presentational Pattern
-- **Container:** Lógica y data fetching
-- **Presentational:** Solo UI, recibe props
+### JWT Flow
 
-#### 2. Custom Hooks
-- Encapsular lógica reutilizable
-- Ejemplo: `useAuth()`, `useExpenses()`, `useDebounce()`
-
-#### 3. Atomic Design (componentes UI)
-- **Atoms:** Button, Input, Label
-- **Molecules:** FormField (Label + Input + Error)
-- **Organisms:** LoginForm, ExpenseForm
-
----
-
-## 🔐 Autenticación Frontend
-
-### Flow JWT
-1. Login → Backend devuelve `access_token` + `refresh_token`
-2. Guardar en `localStorage`:
-   - `accessToken` (expira en 15min)
-   - `refreshToken` (expira en 7 días)
-3. Axios interceptor agrega `Authorization: Bearer {token}` automático
-4. Si 401 → Intentar refresh token
+1. Login → Backend devuelve `access_token` (15min) + `refresh_token` (7d)
+2. Frontend guarda en localStorage
+3. Axios interceptor agrega `Authorization: Bearer <token>` automático
+4. Si 401 → Intenta refresh token
 5. Si refresh falla → Redirect a `/login`
 
 ### Protected Routes
+
 ```tsx
 <Route 
   path="/dashboard" 
@@ -340,153 +350,131 @@ frontend/
 
 ---
 
-## 🎨 Theming & Styling
+## 🎨 Decisiones de Arquitectura
 
-### Tailwind Config (cuando lo necesitemos)
-```js
-// Personalización de colores
-colors: {
-  primary: '#3b82f6',   // blue-500
-  success: '#10b981',   // green-500
-  danger: '#ef4444',    // red-500
-  warning: '#f59e0b',   // amber-500
-}
-```
+### Users vs Accounts (1:N)
 
-### Dark Mode
-- Implementar toggle light/dark
-- Guardar preferencia en `localStorage`
-- Usar `dark:` prefix de Tailwind
+**¿Por qué separados?**
+- Usuario puede tener múltiples contextos financieros
+- Ejemplo: "Finanzas Personales", "Gastos Familia", "Mi Negocio"
+- Cada cuenta está completamente aislada
+- Futuro: Co-ownership (2 users, 1 shared account)
 
----
+### Multi-Currency Modo 3
 
-## 📊 State Management
+**Problema (Argentina):**
+- Gasto: USD 20
+- Débito real: ARS $31,500 (dólar tarjeta con impuestos)
+- Tasa oficial: $900
+- Tasa efectiva: $1,575
 
-### Estado Global (React Context)
-- **AuthContext:** Usuario logueado, tokens, logout()
-- **ThemeContext:** Dark mode toggle
-- **AccountContext:** Cuenta activa (para multi-account)
+**Solución:**
+Usuario provee `amount_in_primary_currency`, sistema calcula `exchange_rate` efectivo automáticamente.
 
-### Estado Servidor (TanStack Query)
-- Expenses, Incomes, Categories, etc.
-- TanStack Query maneja cache, loading, errors
+**Ver detalles:** [docs/MULTI-CURRENCY.md](./docs/MULTI-CURRENCY.md)
 
-### Estado Local (useState)
-- Estado de UI (modals, dropdowns, etc.)
+### Categorías: Predefinidas + Custom
 
----
+**¿Por qué híbrido?**
+- Usuario nuevo tiene categorías listas (onboarding fácil)
+- Power users pueden crear específicas ("Veterinario", "Clases de tango")
+- Reportes consistentes (mayoría usa predefinidas)
 
-## 🚀 Deployment Frontend
+### Gastos Recurrentes: Virtual vs Physical
 
-### Desarrollo (VPS)
-- Puerto: 5173 (Vite dev server)
-- Acceso: http://200.58.105.147:5173
-- Hot Module Replacement (HMR) activo
+**Decisión:** NO crear registros físicos mensuales
 
-### Producción (Futuro)
-- Build: `npm run build` → carpeta `dist/`
-- Servir con Apache/Nginx
-- URL: https://bolsillo.fakerbostero.online
-- Assets optimizados (minificados, tree-shaken)
+**¿Cómo funciona?**
+- Gasto recurring se guarda UNA VEZ
+- Al consultar `GET /expenses?month=2026-02`, backend calcula qué recurrings están activos
+- Aparecen en lista pero NO hay múltiples registros
+
+**Ventaja:** No duplica datos  
+**Desventaja:** Eliminar gasto recurring = perder historial
+
+### Savings Goals: Descuento Virtual
+
+**Decisión:** Metas NO crean expenses reales
+
+**¿Por qué?**
+- Agregar a meta ≠ gastar dinero
+- Es "reservar" dinero para un objetivo
+- Dashboard calcula `available_balance = income - expenses - assigned_to_goals`
 
 ---
 
 ## 📦 Comandos Útiles
 
-### Desarrollo
+### Backend
 ```bash
-npm run dev           # Dev server (puerto 5173)
-npm run build         # Build producción
-npm run preview       # Preview build
-npm run lint          # Lint con ESLint
-npm run format        # Format con Prettier
+go run cmd/server/main.go                          # Dev
+go build -o bin/server cmd/server/main.go          # Build
+go test ./...                                      # Tests
+go fmt ./...                                       # Format
 ```
 
-### Instalación Completa
+### Frontend
 ```bash
-# Dependencias principales
-npm install react-router-dom @tanstack/react-query @tanstack/react-query-devtools axios react-hook-form zod tailwindcss@next
+pnpm dev                                           # Dev (port 5173)
+pnpm build                                         # Build
+pnpm preview                                       # Preview build
+pnpm lint                                          # ESLint
+pnpm type-check                                    # TypeScript check
+```
 
-# Integración React Hook Form + Zod
-npm install @hookform/resolvers
-
-# Dev dependencies
-npm install -D @types/react @types/react-dom typescript eslint prettier
+### Database
+```bash
+psql -U postgres -d bolsillo_claro                 # Connect
+pg_dump -U postgres bolsillo_claro > backup.sql   # Backup
+psql -U postgres bolsillo_claro < backup.sql      # Restore
 ```
 
 ---
 
-## 🔄 Changelog Frontend
+## 🚀 Deployment
 
-### [2026-01-14] - Setup Inicial
-- ✅ Decisión de stack completo
-- ✅ Documentación de arquitectura
-- 🚧 Instalación de Vite + React + TypeScript (pendiente)
-- 🚧 Instalación de dependencias (pendiente)
-- 🚧 Configuración de Tailwind v4 (pendiente)
+### Producción Actual
+
+- **Backend:** Docker container en VPS Debian 12
+- **Frontend:** Build estático servido por Apache
+- **DB:** PostgreSQL local en VPS
+- **Reverse Proxy:** Apache con SSL (Let's Encrypt)
+- **URL:** https://api.fakerbostero.online/bolsillo
+
+### Build de Producción
+
+```bash
+# Backend
+docker build -t bolsillo-backend .
+docker run -d -p 8080:8080 --name bolsillo bolsillo-backend
+
+# Frontend
+cd frontend
+pnpm build
+# Output en: frontend/dist/
+```
 
 ---
 
-## 🎯 Próximos Pasos
-
-1. ✅ Crear proyecto Vite
-2. ✅ Instalar todas las dependencias
-3. ✅ Configurar Tailwind v4
-4. ✅ Configurar Axios interceptors
-5. ✅ Configurar TanStack Query
-6. ✅ Crear estructura de carpetas
-7. ✅ Implementar AuthContext
-8. ✅ Crear página de Login
-9. ✅ Crear página de Dashboard
-10. ✅ Implementar CRUD de Expenses
-
----
-
-## 📚 Recursos y Documentación
+## 📚 Referencias
 
 ### Documentación Oficial
-- [Vite](https://vitejs.dev/)
+- [Go](https://go.dev/doc/)
+- [Gin](https://gin-gonic.com/docs/)
+- [PostgreSQL](https://www.postgresql.org/docs/)
 - [React](https://react.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [React Router](https://reactrouter.com/)
+- [Vite](https://vitejs.dev/)
 - [TanStack Query](https://tanstack.com/query/latest)
-- [Axios](https://axios-http.com/)
-- [React Hook Form](https://react-hook-form.com/)
-- [Zod](https://zod.dev/)
 - [Tailwind CSS](https://tailwindcss.com/)
 
-### Tutoriales Recomendados
-- React TypeScript Cheatsheet: https://react-typescript-cheatsheet.netlify.app/
-- TanStack Query en 10min: https://www.youtube.com/watch?v=8K1N3fE-cDs
-- React Hook Form + Zod: https://www.youtube.com/watch?v=u6PQ5xZAv7Q
+### Documentación del Proyecto
+- [API.md](./API.md) - Especificación completa de endpoints
+- [FEATURES.md](./FEATURES.md) - Guía narrativa de funcionalidades
+- [docs/DATABASE.md](./docs/DATABASE.md) - Schema de base de datos
+- [docs/MULTI-CURRENCY.md](./docs/MULTI-CURRENCY.md) - Sistema multi-moneda
+- [docs/RECURRENCE.md](./docs/RECURRENCE.md) - Sistema de recurrencia
 
 ---
 
-## 🤝 Decisiones de Diseño
-
-### ¿Por qué NO Next.js?
-- No necesitamos SSR (Server-Side Rendering)
-- Es una app privada, no un sitio público con SEO
-- Vite es más simple y rápido para desarrollo
-
-### ¿Por qué TypeScript?
-- Previene ~30% de bugs en runtime
-- Autocompletado increíble en VSCode
-- Refactoring seguro
-- Es lo que se usa en empresas serias
-
-### ¿Por qué TanStack Query?
-- Evita 100+ líneas de código boilerplate por feature
-- Caching inteligente mejora UX
-- Es el estándar de la industria
-
-### ¿Por qué Tailwind?
-- Desarrollo 3x más rápido
-- No tengo que pensar nombres de clases
-- Bundle size pequeño (purga clases no usadas)
-- Responsive design trivial
-
----
-
-**Última actualización:** 2026-01-14
-**Versión:** 1.0.0
+**Última actualización:** 2026-01-16  
+**Versión:** 2.0 (Consolidada)
