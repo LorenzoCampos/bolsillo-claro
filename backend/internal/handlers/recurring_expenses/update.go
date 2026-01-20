@@ -17,7 +17,7 @@ import (
 type UpdateRecurringExpenseRequest struct {
 	Description            *string  `json:"description"`
 	Amount                 *float64 `json:"amount" binding:"omitempty,gt=0"`
-	Currency               *string  `json:"currency" binding:"omitempty,oneof=ARS USD"`
+	Currency               *string  `json:"currency" binding:"omitempty,oneof=ARS USD EUR"`
 	CategoryID             *string  `json:"category_id"`
 	FamilyMemberID         *string  `json:"family_member_id"`
 	RecurrenceInterval     *int     `json:"recurrence_interval" binding:"omitempty,gt=0"`

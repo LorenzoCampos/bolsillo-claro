@@ -14,7 +14,7 @@ import (
 type CreateRecurringExpenseRequest struct {
 	Description       string   `json:"description" binding:"required"`
 	Amount            float64  `json:"amount" binding:"required,gt=0"`
-	Currency          string   `json:"currency" binding:"required,oneof=ARS USD"`
+	Currency          string   `json:"currency" binding:"required,oneof=ARS USD EUR"`
 	CategoryID        *string  `json:"category_id"`
 	FamilyMemberID    *string  `json:"family_member_id"`
 	

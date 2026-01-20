@@ -16,7 +16,7 @@ import (
 type CreateAccountRequest struct {
 	Name     string        `json:"name" binding:"required"`
 	Type     string        `json:"type" binding:"required,oneof=personal family"`
-	Currency string        `json:"currency" binding:"required,oneof=ARS USD"`
+	Currency string        `json:"currency" binding:"required,oneof=ARS USD EUR"`
 	Members  []MemberInput `json:"members"`
 }
 

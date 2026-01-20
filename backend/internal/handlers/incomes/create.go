@@ -16,7 +16,7 @@ type CreateIncomeRequest struct {
 	CategoryID     *string `json:"category_id"`      // Optional
 	Description    string  `json:"description" binding:"required"`
 	Amount         float64 `json:"amount" binding:"required,gt=0"`
-	Currency       string  `json:"currency" binding:"required,oneof=ARS USD"`
+	Currency       string  `json:"currency" binding:"required,oneof=ARS USD EUR"`
 	IncomeType     string  `json:"income_type" binding:"required,oneof=one-time recurring"`
 	Date           string  `json:"date" binding:"required"` // Format: YYYY-MM-DD
 	EndDate        *string `json:"end_date"`                // Optional: for recurring

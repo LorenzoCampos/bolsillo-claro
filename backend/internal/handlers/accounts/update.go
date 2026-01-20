@@ -12,9 +12,8 @@ import (
 // UpdateAccountRequest representa la estructura de datos para actualizar una cuenta
 type UpdateAccountRequest struct {
 	Name     *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
-	Currency *string `json:"currency,omitempty" binding:"omitempty,oneof=ARS USD"`
-	// NOTA: Solo ARS y USD están soportados en el ENUM de la base de datos
-	// Si necesitamos EUR, requiere migración para agregarlo al ENUM currency_type
+	Currency *string `json:"currency,omitempty" binding:"omitempty,oneof=ARS USD EUR"`
+	// NOTA: ARS, USD y EUR están soportados en el ENUM de la base de datos (migración 017)
 }
 
 // UpdateAccount maneja PUT /api/accounts/:id
