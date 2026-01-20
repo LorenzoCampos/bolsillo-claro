@@ -99,9 +99,14 @@ Son compromisos que se repiten automáticamente: Netflix, Spotify, gimnasio, alq
 - Fecha de inicio (`date`)
 - Fecha de fin opcional (`end_date`): Si es null, el gasto se repite indefinidamente
 
-**Recurrencia avanzada (según docs):**
+**Recurrencia avanzada (Patrón de Plantillas):**
 
-Si es **recurrente**, podés decidir la **frecuencia de recurrencia**: `daily` (diario), `weekly` (semanal), `monthly` (mensual), o `yearly` (anual). Además, ese gasto recurrente requiere que especifiques automáticamente:
+⚠️ **IMPORTANTE:** Los gastos recurrentes NO se crean en la tabla `expenses`. Se usan **dos tablas separadas**:
+
+1. **`recurring_expenses`** → Plantilla/configuración del gasto recurrente (POST /api/recurring-expenses)
+2. **`expenses`** → Gastos reales generados desde la plantilla (creados por CRON automáticamente)
+
+Si es **recurrente**, podés decidir la **frecuencia de recurrencia**: `daily` (diario), `weekly` (semanal), `monthly` (mensual), o `yearly` (anual). Además, la plantilla requiere que especifiques:
 
 - **Día de cobro/débito:** 
   - Si es **semanal**: día de la semana del 0 al 6 (0=Domingo, 6=Sábado)
@@ -110,7 +115,7 @@ Si es **recurrente**, podés decidir la **frecuencia de recurrencia**: `daily` (
 
 También podés configurar el **intervalo de recurrencia** (por ejemplo, "cada 2 semanas" significa `recurrence_interval: 2`).
 
-El gasto recurrente puede tener **límite de recurrencias**. Por ejemplo, si comprás algo en 6 cuotas, configurás `total_occurrences: 6` y el sistema trackea en qué cuota estás (`current_occurrence`), mostrando "Cuota 3/6". Si no ponés límite (`total_occurrences: null`), el gasto se repite indefinidamente hasta que lo elimines o modifiques.
+La plantilla puede tener **límite de recurrencias**. Por ejemplo, si comprás algo en 6 cuotas, configurás `total_occurrences: 6` y el sistema trackea en qué cuota estás (`current_occurrence`), mostrando "Cuota 3/6". Si no ponés límite (`total_occurrences: null`), se repite indefinidamente hasta que desactives la plantilla (`is_active: false`).
 
 ### Multi-Currency (Modo 3)
 
@@ -442,101 +447,143 @@ Si no hay datos para el mes solicitado, los totales son 0 y los arrays están va
 
 ## 🔄 **SISTEMA DE RECURRENCIA AVANZADO**
 
-El sistema implementa un modelo avanzado de recurrencia para gastos con campos adicionales en la tabla `expenses`.
+El sistema implementa un **patrón de plantillas de recurrencia** (Recurring Templates Pattern) que separa las plantillas de gastos recurrentes de las ocurrencias reales.
 
-### Campos de Recurrencia
+### Arquitectura: Dos Tablas Separadas
+
+**1. `recurring_expenses`** - Plantillas de recurrencia (configuración)
+- Contiene la **configuración** del gasto recurrente
+- Define **cómo y cuándo** se repite
+- NO aparece en estadísticas ni balances
+
+**2. `expenses`** - Gastos reales (ocurrencias)
+- Contiene los **gastos reales** generados desde las plantillas
+- Aparece en estadísticas, totales y balances
+- Tiene `recurring_expense_id` (FK) que apunta a la plantilla
+
+### Campos de la Plantilla (recurring_expenses)
 
 - `recurrence_frequency`: 'daily', 'weekly', 'monthly', 'yearly'
 - `recurrence_interval`: Cada cuántos períodos (ej: 2 = cada 2 semanas)
 - `recurrence_day_of_month`: Día del mes (1-31) para frecuencia mensual/anual
 - `recurrence_day_of_week`: Día de semana (0-6, 0=Domingo) para frecuencia semanal
+- `start_date`: Cuándo empezar a generar ocurrencias
+- `end_date`: Cuándo dejar de generar (NULL = infinito)
 - `total_occurrences`: Cantidad total de repeticiones. NULL = infinito
-- `current_occurrence`: Número de ocurrencia actual (para mostrar "Cuota 3/6")
-- `parent_expense_id`: ID del gasto padre para gastos auto-generados
+- `current_occurrence`: Contador de cuántas se generaron (ej: "Cuota 3/6")
+- `is_active`: Si está activo (false = pausado/eliminado)
+
+### Endpoints Separados
+
+**Crear plantilla recurrente:**
+```
+POST /api/recurring-expenses
+```
+
+**Crear gasto normal (una vez):**
+```
+POST /api/expenses
+```
 
 ### Casos de Uso Soportados
 
 #### 1. Alquiler mensual indefinido
 ```json
+POST /api/recurring-expenses
 {
   "description": "Alquiler Depto Palermo",
   "amount": 80000,
   "currency": "ARS",
-  "expense_type": "recurring",
-  "date": "2026-02-05",
   "recurrence_frequency": "monthly",
   "recurrence_day_of_month": 5,
+  "start_date": "2026-02-05",
+  "end_date": null,
   "total_occurrences": null
 }
 ```
-Se repite todos los días 5 de cada mes, indefinidamente.
+**Resultado:** Crea una plantilla que generará gastos todos los días 5 de cada mes, indefinidamente.
 
-#### 2. Compra en cuotas
+#### 2. Compra en cuotas (6 meses)
 ```json
+POST /api/recurring-expenses
 {
-  "description": "Zapatillas Nike - Cuota 1/6",
+  "description": "Zapatillas Nike",
   "amount": 8000,
   "currency": "ARS",
-  "expense_type": "recurring",
-  "date": "2026-01-16",
   "recurrence_frequency": "monthly",
   "recurrence_day_of_month": 16,
-  "total_occurrences": 6,
-  "current_occurrence": 1
+  "start_date": "2026-01-16",
+  "total_occurrences": 6
 }
 ```
-6 cuotas de $8,000, día 16 de cada mes. El sistema mostrará "Cuota 1/6", "Cuota 2/6", etc.
+**Resultado:** Crea 6 cuotas de $8,000, día 16 de cada mes. El sistema mostrará "Cuota 1/6", "Cuota 2/6", etc en `current_occurrence`.
 
 #### 3. Suscripción anual
 ```json
+POST /api/recurring-expenses
 {
   "description": "Netflix Premium - Anual",
   "amount": 5000,
   "currency": "ARS",
-  "expense_type": "recurring",
-  "date": "2026-01-15",
   "recurrence_frequency": "yearly",
   "recurrence_day_of_month": 15,
+  "start_date": "2026-01-15",
   "total_occurrences": null
 }
 ```
-Se cobra una vez al año, cada 15 de enero.
+**Resultado:** Se cobra una vez al año, cada 15 de enero.
 
 #### 4. Gastos semanales
 ```json
+POST /api/recurring-expenses
 {
   "description": "Gym - Todos los lunes",
   "amount": 8000,
   "currency": "ARS",
-  "expense_type": "recurring",
-  "date": "2026-01-06",
   "recurrence_frequency": "weekly",
   "recurrence_day_of_week": 1,
+  "start_date": "2026-01-06",
   "total_occurrences": null
 }
 ```
-Se repite todos los lunes (día 1 de la semana).
+**Resultado:** Se repite todos los lunes (día 1 de la semana).
 
-### Validaciones
+### Validaciones (aplicadas por la base de datos)
 
-- Si es recurring, `recurrence_frequency` es **REQUERIDO**
+- `recurrence_frequency` es **REQUERIDO**
 - Si frequency='monthly' o 'yearly' → `recurrence_day_of_month` es **REQUERIDO** (1-31)
 - Si frequency='weekly' → `recurrence_day_of_week` es **REQUERIDO** (0=Domingo, 6=Sábado)
-- `recurrence_interval` default = 1
-- `current_occurrence` default = 1
-- Si `total_occurrences` está definido → `end_date` se calcula automáticamente
-- Si es one-time, todos los campos de recurrencia deben ser NULL
+- `recurrence_interval` default = 1, debe ser > 0
+- `current_occurrence` default = 0 (se incrementa con cada generación)
+- `start_date` es **REQUERIDO** (default: hoy)
+- Si `end_date` está definido → debe ser >= `start_date`
+- Si `total_occurrences` está definido → debe ser > 0
 
-### Cálculo Automático
+### Generación Automática de Ocurrencias
 
-El sistema calcula automáticamente cuándo ocurre la próxima instancia del gasto basándose en la frecuencia e intervalo configurados.
+**IMPORTANTE:** Las plantillas en `recurring_expenses` NO generan automáticamente gastos. Esto requiere:
+1. Un **job CRON** que corra diariamente
+2. El job lee plantillas activas de `recurring_expenses`
+3. Genera nuevas filas en `expenses` con `recurring_expense_id` apuntando a la plantilla
+4. Incrementa `current_occurrence` en la plantilla
+
+**Flujo:**
+```
+1. Usuario crea plantilla → INSERT en recurring_expenses (is_active=true)
+2. CRON corre cada día → Lee plantillas activas
+3. CRON genera gastos → INSERT en expenses con recurring_expense_id
+4. Usuario ve gastos en GET /expenses → Incluye gastos generados
+5. Estadísticas incluyen gastos reales → Solo cuenta filas en expenses
+```
 
 **Ejemplo - Cada 2 semanas:**
 ```json
+POST /api/recurring-expenses
 {
   "recurrence_frequency": "weekly",
   "recurrence_interval": 2,
-  "recurrence_day_of_week": 1
+  "recurrence_day_of_week": 1,
+  "start_date": "2026-01-06"
 }
 ```
 Próximas fechas: 06-ene, 20-ene, 03-feb, 17-feb...

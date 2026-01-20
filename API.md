@@ -577,7 +577,7 @@ Listar gastos.
 - `type` (opcional): `'one-time'`, `'recurring'`, `'all'`
 - `category_id` (opcional): UUID
 - `family_member_id` (opcional): UUID
-- `currency` (opcional): `'ARS'`, `'USD'`, `'all'`
+- `currency` (opcional): `'ARS'`, `'USD'`, `'EUR'`, `'all'`
 
 **Response (200):**
 ```json

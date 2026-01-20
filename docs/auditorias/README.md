@@ -46,17 +46,17 @@ Se recomienda crear nuevas auditorías:
    - **Fix:** Remover `is_general` del INSERT query
    - **Prioridad:** 🔴 URGENTE - Bloquea feature core
 
-2. **Multi-Currency EUR Bug** (afecta ACCOUNTS, EXPENSES, INCOMES)
+2. ✅ **Multi-Currency EUR Bug - CORREGIDO 2026-01-20** (afecta ACCOUNTS, EXPENSES, INCOMES)
    - **Problema:** Handlers validan `EUR` como moneda permitida, pero DB ENUM solo tiene `ARS, USD`
    - **Impacto:** Seleccionar EUR retorna error 500
-   - **Fix:** Agregar EUR al ENUM o removerlo de handlers
-   - **Prioridad:** 🟡 MEDIA
+   - **Fix Aplicado:** Migración 017 agregó EUR al ENUM currency ✅
+   - **Estado:** ✅ CORREGIDO y testeado en producción
 
-3. **Recurrence System Mismatch** (afecta EXPENSES, INCOMES)
-   - **Problema:** FEATURES.md documenta sistema avanzado de recurrencia (frequency, day_of_month, cuotas) pero solo está implementado `date` + `end_date` básico
-   - **Impacto:** Documentación engañosa, usuarios esperan features que no existen
-   - **Fix:** Actualizar docs o implementar sistema completo
-   - **Prioridad:** 🟡 MEDIA
+3. ✅ **Recurrence System Mismatch - DOCUMENTACIÓN CORREGIDA 2026-01-20** (afecta EXPENSES, INCOMES)
+   - **Problema:** FEATURES.md documenta sistema avanzado de recurrencia como si estuviera en tabla `expenses`
+   - **Impacto:** Documentación confusa sobre arquitectura real (recurring_expenses vs expenses)
+   - **Fix Aplicado:** FEATURES.md actualizado aclarando patrón de plantillas (recurring_expenses separado) ✅
+   - **Estado:** ✅ DOCUMENTACIÓN CORREGIDA
 
 #### ✅ Highlights Positivos
 
@@ -90,9 +90,10 @@ Se recomienda crear nuevas auditorías:
 
 **TODOS LOS MÓDULOS CORE EN 10.0/10** 🎯
 
-**Issues menores (no bloqueantes):**
-- 🟡 Multi-Currency EUR Bug (media prioridad)
-- 🟡 Recurrence System Mismatch en docs (media prioridad)
+**Issues menores corregidos (2026-01-20):**
+- ✅ Multi-Currency EUR Bug → Migración 017 aplicada
+- ✅ Recurrence System Mismatch → FEATURES.md corregido
+- ✅ EXPENSES logging agregado (pendiente deploy)
 
 ## Cómo Leer una Auditoría
 

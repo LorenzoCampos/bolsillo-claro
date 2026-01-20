@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 type CreateExpenseRequest struct {
@@ -205,6 +207,22 @@ func CreateExpense(db *pgxpool.Pool) gin.HandlerFunc {
 				categoryName = &name
 			}
 		}
+
+		// Obtener user_id del contexto para logging
+		userID, _ := middleware.GetUserID(c)
+
+		// Log de creación exitosa
+		logger.Info("expense.created", "Gasto creado", map[string]interface{}{
+			"expense_id":    expenseID.String(),
+			"account_id":    accountID,
+			"user_id":       userID,
+			"description":   req.Description,
+			"amount":        req.Amount,
+			"currency":      req.Currency,
+			"expense_type":  req.ExpenseType,
+			"exchange_rate": exchangeRate,
+			"ip":            c.ClientIP(),
+		})
 
 		// Build response
 		response := ExpenseResponse{
