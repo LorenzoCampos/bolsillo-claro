@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
-	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 type CreateIncomeRequest struct {
@@ -17,9 +17,9 @@ type CreateIncomeRequest struct {
 	Description    string  `json:"description" binding:"required"`
 	Amount         float64 `json:"amount" binding:"required,gt=0"`
 	Currency       string  `json:"currency" binding:"required,oneof=ARS USD EUR"`
-	IncomeType     string  `json:"income_type" binding:"required,oneof=one-time recurring"`
-	Date           string  `json:"date" binding:"required"` // Format: YYYY-MM-DD
-	EndDate        *string `json:"end_date"`                // Optional: for recurring
+	IncomeType     *string `json:"income_type" binding:"omitempty,oneof=one-time recurring"` // Optional: defaults to "one-time"
+	Date           string  `json:"date" binding:"required"`                                  // Format: YYYY-MM-DD
+	EndDate        *string `json:"end_date"`                                                 // Optional: for recurring
 
 	// Multi-currency fields (Modo 3: Flexibilidad Total)
 	ExchangeRate            *float64 `json:"exchange_rate,omitempty"`              // Optional: tasa de conversión
@@ -58,6 +58,12 @@ func CreateIncome(db *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
+		// Set default income_type to "one-time" if not provided
+		incomeType := "one-time"
+		if req.IncomeType != nil {
+			incomeType = *req.IncomeType
+		}
+
 		// Validate date format
 		incomeDate, err := time.Parse("2006-01-02", req.Date)
 		if err != nil {
@@ -66,14 +72,14 @@ func CreateIncome(db *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		// Validate end_date logic
-		if req.IncomeType == "one-time" && req.EndDate != nil {
+		if incomeType == "one-time" && req.EndDate != nil {
 			// One-time incomes should NOT have end_date
 			c.JSON(http.StatusBadRequest, gin.H{"error": "one-time incomes cannot have an end_date"})
 			return
 		}
 
 		// If recurring has end_date, validate it
-		if req.IncomeType == "recurring" && req.EndDate != nil {
+		if incomeType == "recurring" && req.EndDate != nil {
 			endDate, err := time.Parse("2006-01-02", *req.EndDate)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_date format, use YYYY-MM-DD"})
@@ -187,7 +193,7 @@ func CreateIncome(db *pgxpool.Pool) gin.HandlerFunc {
 		RETURNING id, created_at`,
 			accountID, req.FamilyMemberID, req.CategoryID, req.Description,
 			req.Amount, req.Currency, exchangeRate, amountInPrimaryCurrency,
-			req.IncomeType, req.Date, req.EndDate,
+			incomeType, req.Date, req.EndDate,
 		).Scan(&incomeID, &createdAt)
 
 		if err != nil {
@@ -219,7 +225,7 @@ func CreateIncome(db *pgxpool.Pool) gin.HandlerFunc {
 			"description": req.Description,
 			"amount":      req.Amount,
 			"currency":    req.Currency,
-			"income_type": req.IncomeType,
+			"income_type": incomeType,
 			"ip":          c.ClientIP(),
 		})
 
@@ -235,7 +241,7 @@ func CreateIncome(db *pgxpool.Pool) gin.HandlerFunc {
 			Currency:                req.Currency,
 			ExchangeRate:            exchangeRate,
 			AmountInPrimaryCurrency: amountInPrimaryCurrency,
-			IncomeType:              req.IncomeType,
+			IncomeType:              incomeType,
 			Date:                    req.Date,
 			EndDate:                 req.EndDate,
 			CreatedAt:               createdAt.Format(time.RFC3339),

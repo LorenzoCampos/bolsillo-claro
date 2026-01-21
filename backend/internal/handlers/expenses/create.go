@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
-	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 type CreateExpenseRequest struct {
@@ -17,9 +17,9 @@ type CreateExpenseRequest struct {
 	Description    string  `json:"description" binding:"required"`
 	Amount         float64 `json:"amount" binding:"required,gt=0"`
 	Currency       string  `json:"currency" binding:"required,oneof=ARS USD EUR"`
-	ExpenseType    string  `json:"expense_type" binding:"required,oneof=one-time recurring"`
-	Date           string  `json:"date" binding:"required"` // Format: YYYY-MM-DD
-	EndDate        *string `json:"end_date"`                // Optional for recurring
+	ExpenseType    *string `json:"expense_type" binding:"omitempty,oneof=one-time recurring"` // Optional: defaults to "one-time"
+	Date           string  `json:"date" binding:"required"`                                   // Format: YYYY-MM-DD
+	EndDate        *string `json:"end_date"`                                                  // Optional for recurring
 
 	// Multi-currency fields (Modo 3: Flexibilidad Total)
 	ExchangeRate            *float64 `json:"exchange_rate,omitempty"`              // Optional: tasa de conversión
@@ -58,6 +58,12 @@ func CreateExpense(db *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
+		// Set default expense_type to "one-time" if not provided
+		expenseType := "one-time"
+		if req.ExpenseType != nil {
+			expenseType = *req.ExpenseType
+		}
+
 		// Validate date format
 		expenseDate, err := time.Parse("2006-01-02", req.Date)
 		if err != nil {
@@ -66,14 +72,14 @@ func CreateExpense(db *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		// Validate end_date logic
-		if req.ExpenseType == "one-time" && req.EndDate != nil {
+		if expenseType == "one-time" && req.EndDate != nil {
 			// One-time expenses should NOT have end_date
 			c.JSON(http.StatusBadRequest, gin.H{"error": "one-time expenses cannot have an end_date"})
 			return
 		}
 
 		// If recurring has end_date, validate it
-		if req.ExpenseType == "recurring" && req.EndDate != nil {
+		if expenseType == "recurring" && req.EndDate != nil {
 			endDate, err := time.Parse("2006-01-02", *req.EndDate)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_date format, use YYYY-MM-DD"})
@@ -187,7 +193,7 @@ func CreateExpense(db *pgxpool.Pool) gin.HandlerFunc {
 		RETURNING id, created_at`,
 			accountID, req.FamilyMemberID, req.CategoryID, req.Description,
 			req.Amount, req.Currency, exchangeRate, amountInPrimaryCurrency,
-			req.ExpenseType, req.Date, req.EndDate,
+			expenseType, req.Date, req.EndDate,
 		).Scan(&expenseID, &createdAt)
 
 		if err != nil {
@@ -219,7 +225,7 @@ func CreateExpense(db *pgxpool.Pool) gin.HandlerFunc {
 			"description":   req.Description,
 			"amount":        req.Amount,
 			"currency":      req.Currency,
-			"expense_type":  req.ExpenseType,
+			"expense_type":  expenseType,
 			"exchange_rate": exchangeRate,
 			"ip":            c.ClientIP(),
 		})
@@ -236,7 +242,7 @@ func CreateExpense(db *pgxpool.Pool) gin.HandlerFunc {
 			Currency:                req.Currency,
 			ExchangeRate:            exchangeRate,
 			AmountInPrimaryCurrency: amountInPrimaryCurrency,
-			ExpenseType:             req.ExpenseType,
+			ExpenseType:             expenseType,
 			Date:                    req.Date,
 			EndDate:                 req.EndDate,
 			CreatedAt:               createdAt.Format(time.RFC3339),
