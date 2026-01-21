@@ -1,0 +1,2200 @@
+{
+  "info": {
+    "name": "Bolsillo Claro API",
+    "description": "Colección completa de endpoints para la API de Bolsillo Claro.\n\n**Instrucciones:**\n1. Importar también el archivo de Environment\n2. Seleccionar el environment 'Bolsillo Claro - Local'\n3. Ejecutar primero 'Register' o 'Login' para obtener tokens\n4. Los tokens se guardan automáticamente en variables de entorno\n5. Crear una cuenta y el account_id se guarda automáticamente\n\n**Flujo recomendado:**\n1. Auth → Register (crea usuario y obtiene tokens)\n2. Accounts → Create Account (crea cuenta y guarda account_id)\n3. Usar cualquier otro endpoint con los tokens ya configurados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Validar que la respuesta sea exitosa",
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "// Validar estructura de la respuesta",
+                  "pm.test('Response has access_token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('access_token');",
+                  "    pm.expect(jsonData).to.have.property('refresh_token');",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "});",
+                  "",
+                  "// Guardar tokens automáticamente en variables de entorno",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('access_token', jsonData.access_token);",
+                  "    pm.environment.set('refresh_token', jsonData.refresh_token);",
+                  "    pm.environment.set('user_id', jsonData.user.id);",
+                  "    pm.environment.set('user_email', jsonData.user.email);",
+                  "    console.log('✅ Tokens guardados automáticamente');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{$randomEmail}}\",\n  \"password\": \"password123\",\n  \"name\": \"{{$randomFullName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registra un nuevo usuario.\n\n**Validaciones:**\n- Email: formato válido, se normaliza a minúsculas\n- Password: mínimo 8 caracteres\n- Name: requerido\n\n**Auto-login:** Devuelve tokens automáticamente.\n\n**Scripts:** Guarda access_token, refresh_token y user_id en variables de entorno."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has tokens', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('access_token');",
+                  "    pm.expect(jsonData).to.have.property('refresh_token');",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('access_token', jsonData.access_token);",
+                  "    pm.environment.set('refresh_token', jsonData.refresh_token);",
+                  "    pm.environment.set('user_id', jsonData.user.id);",
+                  "    console.log('✅ Tokens actualizados');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Inicia sesión con credenciales.\n\n**Nota:** El email es case-insensitive.\n\n**Tokens:**\n- Access: 15 minutos\n- Refresh: 7 días"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('access_token', jsonData.access_token);",
+                  "    pm.environment.set('refresh_token', jsonData.refresh_token);",
+                  "    console.log('✅ Tokens renovados');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Renueva el access token usando el refresh token.\n\n**Importante:** El refresh token viejo se invalida (rotación)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "💰 Accounts",
+      "item": [
+        {
+          "name": "Create Personal Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Account created with correct type', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.type).to.eql('personal');",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('account_id', jsonData.id);",
+                  "    console.log('✅ Account ID guardado: ' + jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mi Cuenta Personal\",\n  \"type\": \"personal\",\n  \"currency\": \"ARS\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["accounts"]
+            },
+            "description": "Crea una cuenta personal (sin miembros).\n\n**Auto-crea:** Meta de ahorro 'Ahorro General'."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Family Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Account has members', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.type).to.eql('family');",
+                  "    pm.expect(jsonData.members).to.be.an('array');",
+                  "    pm.expect(jsonData.members.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('account_id', jsonData.id);",
+                  "    pm.environment.set('member_id', jsonData.members[0].id);",
+                  "    console.log('✅ Family Account creada');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gastos Familia\",\n  \"type\": \"family\",\n  \"currency\": \"ARS\",\n  \"members\": [\n    { \"name\": \"Mamá\", \"email\": \"mama@ejemplo.com\" },\n    { \"name\": \"Papá\", \"email\": \"papa@ejemplo.com\" },\n    { \"name\": \"Hijo\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["accounts"]
+            },
+            "description": "Crea una cuenta familiar con miembros.\n\n**Requerido:** Al menos 1 miembro."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has accounts array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('accounts');",
+                  "    pm.expect(jsonData.accounts).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["accounts"]
+            },
+            "description": "Lista todas las cuentas del usuario autenticado."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account Detail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Account has id and name', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts/{{account_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["accounts", "{{account_id}}"]
+            },
+            "description": "Obtiene el detalle completo de una cuenta (incluye miembros si es family)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mi Cuenta Actualizada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/accounts/{{account_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["accounts", "{{account_id}}"]
+            },
+            "description": "Actualiza el nombre de una cuenta.\n\n**Nota:** El tipo y moneda NO se pueden cambiar."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts/{{account_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["accounts", "{{account_id}}"]
+            },
+            "description": "Elimina una cuenta (CASCADE: también elimina gastos, ingresos, metas, etc.)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "💸 Expenses",
+      "item": [
+        {
+          "name": "Create Expense (ARS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('expense_id', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"currency\": \"ARS\",\n  \"description\": \"Compras del supermercado\",\n  \"category_id\": null,\n  \"date\": \"2026-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/expenses",
+              "host": ["{{base_url}}"],
+              "path": ["expenses"]
+            },
+            "description": "Crea un gasto en pesos argentinos.\n\n**Campos opcionales:**\n- member_id (solo para cuentas family)\n- category_id (si null, usa categoría 'Otros')\n- notes"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Expense (USD - Modo 3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Exchange rate calculated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('exchange_rate');",
+                  "    pm.expect(jsonData.exchange_rate).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50,\n  \"currency\": \"USD\",\n  \"amount_in_primary_currency\": 78750,\n  \"description\": \"Compra en Amazon\",\n  \"date\": \"2026-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/expenses",
+              "host": ["{{base_url}}"],
+              "path": ["expenses"]
+            },
+            "description": "Crea un gasto en USD usando Modo 3 (multi-currency).\n\n**Modo 3:** Registrás cuántos USD gastaste Y cuántos pesos te debitaron.\n\nEl sistema calcula automáticamente:\n- exchange_rate = 78750 / 50 = 1575 (dólar tarjeta con impuestos)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Expense WITH Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Expense has category_name', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('category_name');",
+                  "    pm.expect(jsonData.category_name).to.not.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 15000,\n  \"currency\": \"ARS\",\n  \"description\": \"Cena en restaurante\",\n  \"category_id\": \"{{expense_category_id}}\",\n  \"date\": \"2026-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/expenses",
+              "host": ["{{base_url}}"],
+              "path": ["expenses"]
+            },
+            "description": "Crea un gasto con categoría asignada.\n\n**IMPORTANTE: Cómo asignar categoría**\n\n1. Primero ejecutá: **Categories → Get Expense Categories**\n2. Copiá el `id` de la categoría que querés usar (ej: 'Comida', 'Transporte', etc.)\n3. Pegá ese UUID en este request como `category_id`\n\n**Tip:** Guardá los IDs de categorías frecuentes en variables de entorno para reusar:\n- `expense_category_id` (categoría genérica)\n- `food_category_id` (comida)\n- `transport_category_id` (transporte)\n\n**La respuesta incluirá:**\n- `category_id`: UUID de la categoría\n- `category_name`: Nombre legible (ej: \"Comida 🍔\")"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Expenses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has expenses array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('expenses');",
+                  "    pm.expect(jsonData.expenses).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/expenses?month=2026-01",
+              "host": ["{{base_url}}"],
+              "path": ["expenses"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-01",
+                  "description": "Filtrar por mes (YYYY-MM)"
+                },
+                {
+                  "key": "category_id",
+                  "value": "",
+                  "description": "Filtrar por categoría",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista todos los gastos de la cuenta.\n\n**Query params opcionales:**\n- month (YYYY-MM)\n- category_id (UUID)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Expense Detail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/expenses/{{expense_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["expenses", "{{expense_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Expense",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 6000,\n  \"description\": \"Compras del supermercado - ACTUALIZADO\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/expenses/{{expense_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["expenses", "{{expense_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Expense",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/expenses/{{expense_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["expenses", "{{expense_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "💰 Incomes",
+      "item": [
+        {
+          "name": "Create Income",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('income_id', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 150000,\n  \"currency\": \"ARS\",\n  \"description\": \"Sueldo enero\",\n  \"date\": \"2026-01-05\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incomes",
+              "host": ["{{base_url}}"],
+              "path": ["incomes"]
+            },
+            "description": "Crea un ingreso en pesos argentinos.\n\n**income_type:** opcional (default: one-time)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Income (USD - Modo 3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Exchange rate calculated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('exchange_rate');",
+                  "    pm.expect(jsonData.exchange_rate).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100,\n  \"currency\": \"USD\",\n  \"amount_in_primary_currency\": 157500,\n  \"description\": \"Freelance USA\",\n  \"date\": \"2026-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incomes",
+              "host": ["{{base_url}}"],
+              "path": ["incomes"]
+            },
+            "description": "Crea un ingreso en USD usando Modo 3 (multi-currency).\n\n**Modo 3:** Registrás cuántos USD recibiste Y cuántos pesos ingresaron realmente.\n\nEl sistema calcula automáticamente:\n- exchange_rate = 157500 / 100 = 1575 (dólar real recibido)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Income WITH Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Income has category_name', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('category_name');",
+                  "    pm.expect(jsonData.category_name).to.not.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 80000,\n  \"currency\": \"ARS\",\n  \"description\": \"Proyecto freelance para cliente X\",\n  \"category_id\": \"{{income_category_id}}\",\n  \"date\": \"2026-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incomes",
+              "host": ["{{base_url}}"],
+              "path": ["incomes"]
+            },
+            "description": "Crea un ingreso con categoría asignada.\n\n**IMPORTANTE: Cómo asignar categoría**\n\n1. Primero ejecutá: **Categories → Get Income Categories**\n2. Copiá el `id` de la categoría que querés usar (ej: 'Sueldo', 'Freelance', etc.)\n3. Pegá ese UUID en este request como `category_id`\n\n**Tip:** Guardá los IDs de categorías frecuentes en variables de entorno para reusar:\n- `income_category_id` (categoría genérica)\n- `salary_category_id` (sueldo)\n- `freelance_category_id` (freelance)\n\n**La respuesta incluirá:**\n- `category_id`: UUID de la categoría\n- `category_name`: Nombre legible (ej: \"Freelance 🎨\")"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Incomes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/incomes?month=2026-01",
+              "host": ["{{base_url}}"],
+              "path": ["incomes"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-01"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Income Detail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Income has required fields', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('amount');",
+                  "    pm.expect(jsonData).to.have.property('currency');",
+                  "    pm.expect(jsonData).to.have.property('description');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/incomes/{{income_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["incomes", "{{income_id}}"]
+            },
+            "description": "Obtiene el detalle de un ingreso específico.\n\n**Incluye:**\n- Todos los campos del ingreso\n- Nombre de la categoría (category_name) si tiene categoría asignada\n- Exchange rate si es multi-currency"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Income",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 160000,\n  \"description\": \"Sueldo enero con aumento\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incomes/{{income_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["incomes", "{{income_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Income",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/incomes/{{income_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["incomes", "{{income_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard",
+      "item": [
+        {
+          "name": "Get Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Summary has required fields', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('total_incomes');",
+                  "    pm.expect(jsonData).to.have.property('total_expenses');",
+                  "    pm.expect(jsonData).to.have.property('balance');",
+                  "    pm.expect(jsonData).to.have.property('expenses_by_category');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/summary?month=2026-01",
+              "host": ["{{base_url}}"],
+              "path": ["dashboard", "summary"],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-01",
+                  "description": "Mes a consultar (YYYY-MM)"
+                }
+              ]
+            },
+            "description": "Obtiene el resumen financiero del mes.\n\n**Incluye:**\n- Total ingresos\n- Total gastos\n- Balance\n- Gastos por categoría\n- Ingresos por tipo\n- Gastos recurrentes del mes"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🎯 Savings Goals",
+      "item": [
+        {
+          "name": "Create Goal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('savings_goal_id', jsonData.savings_goal.id);",
+                  "    console.log('✅ Guardado savings_goal_id:', jsonData.savings_goal.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vacaciones 2026\",\n  \"target_amount\": 500000,\n  \"deadline\": \"2026-12-31\",\n  \"description\": \"Viaje familiar a Brasil\",\n  \"saved_in\": \"Cuenta de ahorros Banco Galicia\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/savings-goals",
+              "host": ["{{base_url}}"],
+              "path": ["savings-goals"]
+            },
+            "description": "Crea una meta de ahorro.\n\n**Campos requeridos:**\n- `name`: Nombre único por cuenta\n- `target_amount`: Monto objetivo (> 0)\n\n**Campos opcionales:**\n- `description`: Descripción de la meta\n- `deadline`: Fecha límite (YYYY-MM-DD)\n- `saved_in`: Dónde guardás el dinero (ej: \"Cuenta Banco X\")\n\n**Auto-generados:**\n- `currency`: Hereda de la cuenta (ARS/USD)\n- `current_amount`: Inicia en 0\n- `is_active`: Inicia en true\n- `required_monthly_savings`: Se calcula si hay deadline"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Goals",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/savings-goals",
+              "host": ["{{base_url}}"],
+              "path": ["savings-goals"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Goal Detail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/savings-goals/{{savings_goal_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["savings-goals", "{{savings_goal_id}}"]
+            },
+            "description": "Obtiene el detalle de una meta (incluye historial de transacciones)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Goal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Goal was updated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData).to.have.property('savings_goal');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vacaciones 2026 (actualizado)\",\n  \"target_amount\": 500000,\n  \"deadline\": \"2026-12-31\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/savings-goals/{{savings_goal_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["savings-goals", "{{savings_goal_id}}"]
+            },
+            "description": "Actualiza una meta de ahorro existente.\n\n**Partial Update:** Solo envía los campos que querés modificar.\n\n**Campos actualizables (todos opcionales):**\n- `name`: Nombre de la meta (debe ser único)\n- `description`: Descripción\n- `target_amount`: Monto objetivo (debe ser > 0)\n- `saved_in`: Dónde guardás el dinero (ej: \"Cuenta Banco X\")\n- `deadline`: Fecha límite (YYYY-MM-DD). Enviar `\"\"` para limpiar.\n- `is_active`: `true` (activa) o `false` (archivada)\n\n**Importante:**\n- NO se puede modificar `current_amount` (usá add-funds/withdraw-funds)\n- NO se puede modificar `currency`\n- El deadline debe ser fecha futura\n- Las transacciones previas NO se modifican"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Funds",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000,\n  \"description\": \"Ahorro del mes de enero\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/savings-goals/{{savings_goal_id}}/add-funds",
+              "host": ["{{base_url}}"],
+              "path": ["savings-goals", "{{savings_goal_id}}", "add-funds"]
+            },
+            "description": "Agrega fondos a una meta de ahorro.\n\n**Campos opcionales:**\n- `description`: Descripción de la transacción\n- `date`: Fecha de la transacción (YYYY-MM-DD). Si no se especifica, usa la fecha actual.\n\n**Nota:** No crea un expense, solo aumenta el `current_amount` de la meta."
+          },
+          "response": []
+        },
+        {
+          "name": "Withdraw Funds",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10000,\n  \"description\": \"Retiro parcial\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/savings-goals/{{savings_goal_id}}/withdraw-funds",
+              "host": ["{{base_url}}"],
+              "path": ["savings-goals", "{{savings_goal_id}}", "withdraw-funds"]
+            },
+            "description": "Retira fondos de una meta de ahorro.\n\n**Campos opcionales:**\n- `description`: Descripción de la transacción\n- `date`: Fecha de la transacción (YYYY-MM-DD). Si no se especifica, usa la fecha actual.\n\n**Validaciones:**\n- No se puede retirar más de lo que hay en `current_amount`\n- La fecha no puede ser posterior al deadline de la meta"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Goal",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/savings-goals/{{savings_goal_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["savings-goals", "{{savings_goal_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔁 Recurring Expenses",
+      "item": [
+        {
+          "name": "Create Recurring Expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('recurring_expense_id', jsonData.recurring_expense.id);",
+                  "    console.log('✅ Guardado recurring_expense_id:', jsonData.recurring_expense.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Netflix Premium\",\n  \"amount\": 5000,\n  \"currency\": \"ARS\",\n  \"recurrence_frequency\": \"monthly\",\n  \"recurrence_day_of_month\": 15,\n  \"start_date\": \"2026-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recurring-expenses",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-expenses"]
+            },
+            "description": "Crea un template de gasto recurrente.\n\n**Campos requeridos:**\n- `description`: Descripción del gasto\n- `amount`: Monto (> 0)\n- `currency`: \"ARS\" o \"USD\"\n- `recurrence_frequency`: \"daily\", \"weekly\", \"monthly\", \"yearly\"\n- `start_date`: Fecha de inicio (YYYY-MM-DD)\n\n**Campos según frecuencia:**\n- **monthly/yearly** → requiere `recurrence_day_of_month` (1-31)\n- **weekly** → requiere `recurrence_day_of_week` (0=Domingo, 6=Sábado)\n- **daily** → no requiere campos adicionales\n\n**Campos opcionales:**\n- `recurrence_interval`: cada N períodos (default: 1)\n- `end_date`: Fecha fin (YYYY-MM-DD)\n- `total_occurrences`: Límite de repeticiones\n- `category_id`: UUID de categoría\n- `family_member_id`: UUID de miembro (solo family accounts)\n\n**El scheduler genera automáticamente** los gastos a las 00:01 UTC cada día."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Recurring Expense (Weekly)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Clase de Yoga\",\n  \"amount\": 3000,\n  \"currency\": \"ARS\",\n  \"recurrence_frequency\": \"weekly\",\n  \"recurrence_day_of_week\": 1,\n  \"start_date\": \"2026-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recurring-expenses",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-expenses"]
+            },
+            "description": "Crea un gasto recurrente semanal.\n\n**recurrence_day_of_week:**\n- 0 = Domingo\n- 1 = Lunes\n- 2 = Martes\n- 3 = Miércoles\n- 4 = Jueves\n- 5 = Viernes\n- 6 = Sábado\n\nEn este ejemplo: Todos los lunes."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Recurring Expense (Daily)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Café diario\",\n  \"amount\": 500,\n  \"currency\": \"ARS\",\n  \"recurrence_frequency\": \"daily\",\n  \"start_date\": \"2026-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recurring-expenses",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-expenses"]
+            },
+            "description": "Crea un gasto recurrente diario.\n\n**Nota:** NO requiere day_of_month ni day_of_week.\n\nÚtil para gastos que se repiten todos los días (ej: café, transporte, etc.)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Recurring Expenses",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recurring-expenses",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-expenses"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Recurring Expense",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5500,\n  \"description\": \"Netflix Premium - Aumentó\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recurring-expenses/{{recurring_expense_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-expenses", "{{recurring_expense_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Recurring Expense",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recurring-expenses/{{recurring_expense_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-expenses", "{{recurring_expense_id}}"]
+            },
+            "description": "Desactiva el template (is_active = false).\n\n**Nota:** NO elimina los gastos ya generados."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔁 Recurring Incomes",
+      "item": [
+        {
+          "name": "Create Recurring Income (Monthly)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('recurring_income_id', jsonData.recurring_income.id);",
+                  "    console.log('✅ Guardado recurring_income_id:', jsonData.recurring_income.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Sueldo mensual\",\n  \"amount\": 150000,\n  \"currency\": \"ARS\",\n  \"recurrence_frequency\": \"monthly\",\n  \"recurrence_day_of_month\": 5,\n  \"start_date\": \"2026-01-05\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recurring-incomes",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-incomes"]
+            },
+            "description": "Crea un template de ingreso recurrente mensual.\n\n**Campos requeridos:**\n- `description`: Descripción del ingreso\n- `amount`: Monto (> 0)\n- `currency`: \"ARS\" o \"USD\"\n- `recurrence_frequency`: \"daily\", \"weekly\", \"monthly\", \"yearly\"\n- `start_date`: Fecha de inicio (YYYY-MM-DD)\n\n**Campos según frecuencia:**\n- **monthly/yearly** → requiere `recurrence_day_of_month` (1-31)\n- **weekly** → requiere `recurrence_day_of_week` (0=Domingo, 6=Sábado)\n- **daily** → no requiere campos adicionales\n\n**Campos opcionales:**\n- `recurrence_interval`: cada N períodos (default: 1)\n- `end_date`: Fecha fin (YYYY-MM-DD)\n- `total_occurrences`: Límite de repeticiones\n- `category_id`: UUID de categoría\n- `family_member_id`: UUID de miembro (solo family accounts)\n\n**El scheduler genera automáticamente** los ingresos a las 00:01 UTC cada día."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Recurring Income (Weekly)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Freelance semanal\",\n  \"amount\": 25000,\n  \"currency\": \"ARS\",\n  \"recurrence_frequency\": \"weekly\",\n  \"recurrence_day_of_week\": 5,\n  \"start_date\": \"2026-01-24\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recurring-incomes",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-incomes"]
+            },
+            "description": "Crea un ingreso recurrente semanal.\n\n**recurrence_day_of_week:**\n- 0 = Domingo\n- 1 = Lunes\n- 2 = Martes\n- 3 = Miércoles\n- 4 = Jueves\n- 5 = Viernes\n- 6 = Sábado\n\nEn este ejemplo: Todos los viernes (día de pago freelance)."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Recurring Income (Daily)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Ingresos por propinas\",\n  \"amount\": 2000,\n  \"currency\": \"ARS\",\n  \"recurrence_frequency\": \"daily\",\n  \"start_date\": \"2026-01-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/recurring-incomes",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-incomes"]
+            },
+            "description": "Crea un ingreso recurrente diario.\n\n**Nota:** NO requiere day_of_month ni day_of_week.\n\nÚtil para ingresos diarios (ej: propinas, ventas diarias, etc.)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Recurring Incomes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recurring-incomes",
+              "host": ["{{base_url}}"],
+              "path": ["recurring-incomes"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏷️ Categories",
+      "item": [
+        {
+          "name": "Get Expense Categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Guardar el ID de la primera categoría para usar en otros requests",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.categories && jsonData.categories.length > 0) {",
+                  "        pm.environment.set('expense_category_id', jsonData.categories[0].id);",
+                  "        console.log('✅ Guardado expense_category_id:', jsonData.categories[0].id);",
+                  "        console.log('   Categoría:', jsonData.categories[0].name);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/expense-categories",
+              "host": ["{{base_url}}"],
+              "path": ["expense-categories"]
+            },
+            "description": "Lista categorías de gastos (default + custom de la cuenta).\n\n**Categorías default incluidas:**\n- Comida 🍔\n- Transporte 🚗\n- Hogar 🏠\n- Entretenimiento 🎬\n- Salud 💊\n- Educación 📚\n- Ropa 👕\n- Otros 📦\n\n**Script automático:** Guarda el ID de la primera categoría en `expense_category_id` para usar en requests de crear gastos."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Custom Expense Category",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mascotas\",\n  \"icon\": \"🐶\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/expense-categories",
+              "host": ["{{base_url}}"],
+              "path": ["expense-categories"]
+            },
+            "description": "Crea una categoría custom para la cuenta.\n\n**Nota:** El nombre debe ser único (case-insensitive) por cuenta."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Income Categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Guardar el ID de la primera categoría para usar en otros requests",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.categories && jsonData.categories.length > 0) {",
+                  "        pm.environment.set('income_category_id', jsonData.categories[0].id);",
+                  "        console.log('✅ Guardado income_category_id:', jsonData.categories[0].id);",
+                  "        console.log('   Categoría:', jsonData.categories[0].name);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/income-categories",
+              "host": ["{{base_url}}"],
+              "path": ["income-categories"]
+            },
+            "description": "Lista categorías de ingresos (default + custom de la cuenta).\n\n**Categorías default incluidas:**\n- Sueldo 💼\n- Freelance 🎨\n- Inversiones 📈\n- Ventas 🛍️\n- Regalos 🎁\n- Otros 📦\n\n**Script automático:** Guarda el ID de la primera categoría en `income_category_id` para usar en requests de crear ingresos."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Custom Income Category",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Freelance Diseño\",\n  \"icon\": \"🎨\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/income-categories",
+              "host": ["{{base_url}}"],
+              "path": ["income-categories"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👥 Family Members",
+      "item": [
+        {
+          "name": "Get Members",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/family-members",
+              "host": ["{{base_url}}"],
+              "path": ["family-members"]
+            },
+            "description": "Lista los miembros de una cuenta familiar."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Member",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Account-ID",
+                "value": "{{account_id}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Abuela\",\n  \"email\": \"abuela@ejemplo.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/family-members",
+              "host": ["{{base_url}}"],
+              "path": ["family-members"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "❤️ Health Check",
+      "item": [
+        {
+          "name": "Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('API is healthy', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verifica que la API esté funcionando correctamente."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://192.168.0.46:9090/api",
+      "type": "string"
+    }
+  ]
+}
