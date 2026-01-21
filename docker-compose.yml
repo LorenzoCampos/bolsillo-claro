@@ -1,0 +1,147 @@
+# ============================================================================
+# DOCKER COMPOSE - Bolsillo Claro
+# ============================================================================
+# Este archivo define y orquesta todos los servicios necesarios para correr
+# la aplicación completa: backend (Go) y base de datos (PostgreSQL)
+#
+# Comandos útiles:
+#   docker-compose up          → Levanta todos los servicios
+#   docker-compose up -d       → Levanta en modo detached (background)
+#   docker-compose down        → Para y elimina los contenedores
+#   docker-compose logs -f     → Ver logs en tiempo real
+#   docker-compose ps          → Ver estado de los servicios
+# ============================================================================
+
+version: '3.8'
+
+# ----------------------------------------------------------------------------
+# SERVICIOS (contenedores que vamos a correr)
+# ----------------------------------------------------------------------------
+services:
+  
+  # ==========================================================================
+  # POSTGRES - Base de datos
+  # ==========================================================================
+  postgres:
+    # Imagen oficial de PostgreSQL versión 15 de Alpine (más liviana)
+    image: postgres:15-alpine
+    
+    # Nombre del contenedor (más fácil de identificar)
+    container_name: bolsillo-claro-db
+    
+    # Reiniciar automáticamente si se cae (salvo que lo paremos manualmente)
+    restart: unless-stopped
+    
+    # Variables de entorno para configurar Postgres
+    environment:
+      # Usuario que se va a crear automáticamente
+      POSTGRES_USER: bolsillo_user
+      
+      # Contraseña del usuario (EN PRODUCCIÓN usar secrets, no hardcodear)
+      POSTGRES_PASSWORD: bolsillo_password_dev
+      
+      # Nombre de la base de datos que se va a crear automáticamente
+      POSTGRES_DB: bolsillo_claro
+      
+      # Configuración de encoding (importante para caracteres especiales en español)
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=es_AR.UTF-8"
+    
+    # Mapeo de puertos: PUERTO_HOST:PUERTO_CONTENEDOR
+    # Esto permite que accedas a Postgres desde tu máquina local en el puerto 5433
+    # CAMBIAMOS a 5433 porque el 5432 ya está ocupado en tu máquina
+    ports:
+      - "5433:5432"
+    
+    # Volumen para PERSISTIR los datos
+    # Si no hacés esto, cuando el contenedor se destruya, PERDÉS TODOS LOS DATOS
+    # Los datos se guardan en la carpeta ./postgres-data de tu proyecto
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # También montamos las migraciones para que estén disponibles dentro del contenedor
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    
+    # Health check: Docker va a verificar periódicamente si Postgres está funcionando
+    healthcheck:
+      # Comando que verifica si Postgres acepta conexiones
+      test: ["CMD-SHELL", "pg_isready -U bolsillo_user -d bolsillo_claro"]
+      interval: 10s        # Cada cuánto tiempo verificar
+      timeout: 5s          # Tiempo máximo de espera para la respuesta
+      retries: 5           # Cuántas veces reintentar antes de marcar como "unhealthy"
+      start_period: 10s    # Tiempo de gracia inicial (no falla inmediatamente)
+    
+    # Red interna de Docker (para que los servicios se comuniquen entre sí)
+    networks:
+      - bolsillo-network
+
+  # ==========================================================================
+  # BACKEND - API en Go
+  # ==========================================================================
+  backend:
+    # En lugar de usar una imagen pre-construida, le decimos a Docker que
+    # CONSTRUYA la imagen usando el Dockerfile que ya tenés en ./backend
+    build:
+      context: ./backend      # Carpeta donde está el código y el Dockerfile
+      dockerfile: Dockerfile  # Nombre del Dockerfile a usar
+    
+    # Nombre del contenedor
+    container_name: bolsillo-claro-backend
+    
+    # Reiniciar automáticamente si se cae
+    restart: unless-stopped
+    
+    # Mapeo de puertos: tu API estará disponible en http://localhost:9090
+    ports:
+      - "9090:8080"
+    
+    # Variables de entorno que el backend necesita
+    environment:
+      # URL de conexión a Postgres
+      # OJO: usamos "postgres" como host (nombre del servicio en docker-compose)
+      # Docker automáticamente resuelve "postgres" a la IP del contenedor de Postgres
+      DATABASE_URL: postgresql://bolsillo_user:bolsillo_password_dev@postgres:5432/bolsillo_claro?sslmode=disable
+      
+      # JWT secrets (en producción usar valores seguros)
+      JWT_SECRET: dev-secret-super-ultra-mega-seguro-cambiar-en-produccion-12345
+      JWT_REFRESH_SECRET: dev-refresh-secret-super-ultra-mega-seguro-cambiar-en-produccion-67890
+      
+      # Configuración del servidor
+      PORT: 8080
+      GIN_MODE: debug  # En desarrollo usamos debug, en producción: release
+      
+      # CORS - permitir peticiones desde el frontend local Y desde la red local
+      # localhost: para desarrollo en la misma máquina
+      # 192.168.0.46: tu IP local (para acceder desde otros dispositivos en tu red)
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000,http://192.168.0.46:5173,http://192.168.0.46:3000,http://192.168.0.46:9090
+    
+    # DEPENDS_ON: El backend NO se va a levantar hasta que Postgres esté "healthy"
+    # Esto evita errores de "no se puede conectar a la base de datos"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    # Red interna
+    networks:
+      - bolsillo-network
+    
+    # Volumen para desarrollo: Mapea tu código local al contenedor
+    # Esto permite hacer hot-reload (cambios en tiempo real)
+    # COMENTADO por defecto porque Go requiere recompilar
+    # volumes:
+    #   - ./backend:/app
+
+# ----------------------------------------------------------------------------
+# VOLÚMENES (almacenamiento persistente)
+# ----------------------------------------------------------------------------
+# Docker crea estos volúmenes y los mantiene aunque destruyas los contenedores
+volumes:
+  postgres-data:
+    driver: local  # Almacenamiento local en disco
+
+# ----------------------------------------------------------------------------
+# REDES (comunicación entre contenedores)
+# ----------------------------------------------------------------------------
+# Docker crea una red interna donde los servicios pueden hablarse entre sí
+# usando sus nombres como DNS (ej: "postgres", "backend")
+networks:
+  bolsillo-network:
+    driver: bridge  # Tipo de red (bridge es el estándar)
