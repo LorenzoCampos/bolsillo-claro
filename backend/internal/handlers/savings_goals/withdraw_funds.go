@@ -4,19 +4,19 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
+	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/LorenzoCampos/bolsillo-claro/internal/middleware"
-	"github.com/LorenzoCampos/bolsillo-claro/pkg/logger"
 )
 
 // WithdrawFundsRequest represents the request to withdraw funds from a savings goal
 type WithdrawFundsRequest struct {
 	Amount      float64 `json:"amount" binding:"required,gt=0"`
 	Description *string `json:"description,omitempty"`
-	Date        string  `json:"date" binding:"required"` // Format: YYYY-MM-DD
+	Date        *string `json:"date,omitempty"` // Format: YYYY-MM-DD, defaults to today
 }
 
 // WithdrawFunds handles POST /api/savings-goals/:id/withdraw-funds
@@ -43,51 +43,59 @@ func WithdrawFunds(db *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
+		// Use current date if not provided
+		var transactionDateStr string
+		if req.Date == nil || *req.Date == "" {
+			transactionDateStr = time.Now().Format("2006-01-02")
+		} else {
+			transactionDateStr = *req.Date
+		}
+
 		// Validate date format
-		transactionDate, err := time.Parse("2006-01-02", req.Date)
+		transactionDate, err := time.Parse("2006-01-02", transactionDateStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date format, use YYYY-MM-DD"})
 			return
 		}
 
-	// Check if date is not in the future
-	if transactionDate.After(time.Now().Truncate(24 * time.Hour)) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "la fecha no puede ser futura"})
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	// First, we need to check the goal's deadline before starting the transaction
-	// to validate the transaction date
-	var goalDeadline *time.Time
-	preCheckQuery := `SELECT deadline FROM savings_goals WHERE id = $1 AND account_id = $2`
-	err = db.QueryRow(ctx, preCheckQuery, goalID, accountID).Scan(&goalDeadline)
-	
-	if err == pgx.ErrNoRows {
-		c.JSON(http.StatusNotFound, gin.H{"error": "meta de ahorro no encontrada o no pertenece a esta cuenta"})
-		return
-	}
-	
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check savings goal"})
-		return
-	}
-
-	// Validate that transaction date is not after goal deadline
-	if goalDeadline != nil {
-		deadlineDate := time.Date(goalDeadline.Year(), goalDeadline.Month(), goalDeadline.Day(), 0, 0, 0, 0, time.UTC)
-		transactionDateUTC := time.Date(transactionDate.Year(), transactionDate.Month(), transactionDate.Day(), 0, 0, 0, 0, time.UTC)
-		
-		if transactionDateUTC.After(deadlineDate) {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "no puedes retirar fondos con una fecha posterior al deadline de la meta",
-				"transaction_date": req.Date,
-				"goal_deadline": goalDeadline.Format("2006-01-02"),
-			})
+		// Check if date is not in the future
+		if transactionDate.After(time.Now().Truncate(24 * time.Hour)) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "la fecha no puede ser futura"})
 			return
 		}
-	}
+
+		ctx := c.Request.Context()
+
+		// First, we need to check the goal's deadline before starting the transaction
+		// to validate the transaction date
+		var goalDeadline *time.Time
+		preCheckQuery := `SELECT deadline FROM savings_goals WHERE id = $1 AND account_id = $2`
+		err = db.QueryRow(ctx, preCheckQuery, goalID, accountID).Scan(&goalDeadline)
+
+		if err == pgx.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "meta de ahorro no encontrada o no pertenece a esta cuenta"})
+			return
+		}
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check savings goal"})
+			return
+		}
+
+		// Validate that transaction date is not after goal deadline
+		if goalDeadline != nil {
+			deadlineDate := time.Date(goalDeadline.Year(), goalDeadline.Month(), goalDeadline.Day(), 0, 0, 0, 0, time.UTC)
+			transactionDateUTC := time.Date(transactionDate.Year(), transactionDate.Month(), transactionDate.Day(), 0, 0, 0, 0, time.UTC)
+
+			if transactionDateUTC.After(deadlineDate) {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error":            "no puedes retirar fondos con una fecha posterior al deadline de la meta",
+					"transaction_date": transactionDateStr,
+					"goal_deadline":    goalDeadline.Format("2006-01-02"),
+				})
+				return
+			}
+		}
 
 		// Start transaction
 		tx, err := db.Begin(ctx)
@@ -97,12 +105,12 @@ func WithdrawFunds(db *pgxpool.Pool) gin.HandlerFunc {
 		}
 		defer tx.Rollback(ctx)
 
-	// Check if goal exists and belongs to this account
-	var currentAmount, targetAmount float64
-	var name string
-	var deadline *time.Time
-	checkQuery := `SELECT name, current_amount, target_amount, deadline FROM savings_goals WHERE id = $1 AND account_id = $2`
-	err = tx.QueryRow(ctx, checkQuery, goalID, accountID).Scan(&name, &currentAmount, &targetAmount, &deadline)
+		// Check if goal exists and belongs to this account
+		var currentAmount, targetAmount float64
+		var name string
+		var deadline *time.Time
+		checkQuery := `SELECT name, current_amount, target_amount, deadline FROM savings_goals WHERE id = $1 AND account_id = $2`
+		err = tx.QueryRow(ctx, checkQuery, goalID, accountID).Scan(&name, &currentAmount, &targetAmount, &deadline)
 
 		if err == pgx.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "meta de ahorro no encontrada o no pertenece a esta cuenta"})
@@ -136,7 +144,7 @@ func WithdrawFunds(db *pgxpool.Pool) gin.HandlerFunc {
 		`
 
 		err = tx.QueryRow(ctx, insertTxnQuery,
-			goalID, req.Amount, req.Description, req.Date,
+			goalID, req.Amount, req.Description, transactionDateStr,
 		).Scan(&transactionID, &createdAt)
 
 		if err != nil {
@@ -179,13 +187,13 @@ func WithdrawFunds(db *pgxpool.Pool) gin.HandlerFunc {
 
 		// Log de retiro de fondos
 		logger.Info("savings_goal.withdraw_funds", "Fondos retirados de meta de ahorro", map[string]interface{}{
-			"goal_id":       goalID,
-			"account_id":    accountID,
-			"user_id":       userID,
-			"amount":        req.Amount,
-			"new_balance":   updatedAmount,
-			"goal_name":     name,
-			"ip":            c.ClientIP(),
+			"goal_id":     goalID,
+			"account_id":  accountID,
+			"user_id":     userID,
+			"amount":      req.Amount,
+			"new_balance": updatedAmount,
+			"goal_name":   name,
+			"ip":          c.ClientIP(),
 		})
 
 		// Build response
@@ -204,7 +212,7 @@ func WithdrawFunds(db *pgxpool.Pool) gin.HandlerFunc {
 				"amount":           -req.Amount, // Negative for display
 				"transaction_type": "withdrawal",
 				"description":      req.Description,
-				"date":             req.Date,
+				"date":             transactionDateStr,
 				"created_at":       createdAt.Format(time.RFC3339),
 			},
 		})
